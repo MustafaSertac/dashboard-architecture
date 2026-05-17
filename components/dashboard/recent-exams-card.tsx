@@ -38,12 +38,12 @@ export function RecentExamsCard() {
                       {format(parseISO(exam.date), "d MMMM", { locale: tr })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      D: {exam.correct} Y: {exam.wrong} B: {exam.empty}
+                      D: {exam.totalCorrect} Y: {exam.totalWrong} B: {exam.totalEmpty}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold">{exam.net.toFixed(1)}</p>
+                  <p className="text-lg font-bold">{exam.totalNet.toFixed(1)}</p>
                   <Badge
                     variant={exam.analysisCompleted ? "outline" : "secondary"}
                     className={exam.analysisCompleted ? "border-green-500 text-green-500" : ""}
