@@ -19,10 +19,16 @@ import type { ExamType } from "@/lib/types";
 
 interface ExamTrendsChartProps {
   examType: ExamType;
+  studentId?: string;
 }
 
-export function ExamTrendsChart({ examType }: ExamTrendsChartProps) {
+export function ExamTrendsChart({ examType, studentId }: ExamTrendsChartProps) {
   const { examResults, students } = useApp();
+
+  // If studentId is provided, filter for single student, otherwise show all students
+  const studentsToShow = studentId 
+    ? students.filter((s) => s.id === studentId)
+    : students;
 
   const chartData = useMemo(() => {
     // Get all unique dates
@@ -40,7 +46,7 @@ export function ExamTrendsChart({ examType }: ExamTrendsChartProps) {
         date: format(parseISO(date), "d MMM", { locale: tr }),
       };
 
-      students.forEach((student) => {
+      studentsToShow.forEach((student) => {
         const exam = examResults.find(
           (e) =>
             e.date === date &&
@@ -54,7 +60,7 @@ export function ExamTrendsChart({ examType }: ExamTrendsChartProps) {
 
       return dataPoint;
     });
-  }, [examResults, examType, students]);
+  }, [examResults, examType, studentsToShow]);
 
   const colors = [
     "hsl(var(--chart-1))",
@@ -100,7 +106,7 @@ export function ExamTrendsChart({ examType }: ExamTrendsChartProps) {
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
                 <Legend />
-                {students.map((student, index) => (
+                {studentsToShow.map((student, index) => (
                   <Line
                     key={student.id}
                     type="monotone"

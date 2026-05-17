@@ -32,13 +32,17 @@ interface DayAnalytics {
   totalHours: number;
 }
 
-export function WeeklyAnalytics() {
+interface WeeklyAnalyticsProps {
+  studentId?: string;
+}
+
+export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsProps) {
   const { tasks, currentUser, students } = useApp();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
 
-  const studentId = currentUser.role === "student" ? currentUser.id : students[0]?.id;
+  const studentId = propStudentId || (currentUser.role === "student" ? currentUser.id : students[0]?.id);
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
 
   const handlePrevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));

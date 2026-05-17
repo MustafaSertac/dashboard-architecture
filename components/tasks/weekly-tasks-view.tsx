@@ -34,7 +34,13 @@ interface DayData {
   tasks: WeekTask[];
 }
 
-export function WeeklyTasksView({ studentId }: { studentId: string }) {
+interface WeeklyTasksViewProps {
+  studentId: string;
+  role?: "student" | "teacher";
+}
+
+export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksViewProps) {
+  const isTeacher = role === "teacher";
   const { tasks } = useApp();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })

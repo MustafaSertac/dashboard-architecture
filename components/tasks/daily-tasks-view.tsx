@@ -29,7 +29,13 @@ interface DailyTask {
   isCompleted: boolean;
 }
 
-export function DailyTasksView({ studentId }: { studentId: string }) {
+interface DailyTasksViewProps {
+  studentId: string;
+  role?: "student" | "teacher";
+}
+
+export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewProps) {
+  const isTeacher = role === "teacher";
   const { tasks, updateTask } = useApp();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -267,6 +273,16 @@ export function DailyTasksView({ studentId }: { studentId: string }) {
                         >
                           Guncelle
                         </Button>
+                        {isTeacher && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-success border-success/50 hover:bg-success/10"
+                            onClick={() => handleToggleComplete(task)}
+                          >
+                            {task.isCompleted ? "Iptal Et" : "Onayla"}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>

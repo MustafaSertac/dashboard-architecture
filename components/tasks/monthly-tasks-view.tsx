@@ -30,7 +30,13 @@ interface DaySummary {
   status: "success" | "warning" | "danger" | "empty";
 }
 
-export function MonthlyTasksView({ studentId }: { studentId: string }) {
+interface MonthlyTasksViewProps {
+  studentId: string;
+  role?: "student" | "teacher";
+}
+
+export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksViewProps) {
+  const isTeacher = role === "teacher";
   const { tasks } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 

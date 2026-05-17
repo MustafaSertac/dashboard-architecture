@@ -19,7 +19,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!user && !isPublicPath) {
         router.push("/login");
       } else if (user && isPublicPath) {
-        router.push("/dashboard");
+        // Redirect based on role
+        if (user.role === "teacher" || user.role === "admin") {
+          router.push("/teacher");
+        } else {
+          router.push("/dashboard");
+        }
       }
     }
   }, [user, isLoading, pathname, router]);

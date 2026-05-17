@@ -29,10 +29,13 @@ import { TYT_SUBJECTS, AYT_SUBJECTS, TOPICS_BY_SUBJECT } from "@/lib/types";
 interface ExamInputModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  studentId?: string;
 }
 
-export function ExamInputModal({ open, onOpenChange }: ExamInputModalProps) {
+export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModalProps) {
   const { addExamResult, currentUser } = useApp();
+
+  const targetStudentId = studentId || currentUser.id;
   const [examType, setExamType] = useState<ExamType>("TYT");
   const [inputMode, setInputMode] = useState<"global" | "detailed">("global");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -50,7 +53,7 @@ export function ExamInputModal({ open, onOpenChange }: ExamInputModalProps) {
 
     const newResult: ExamResult = {
       id: Date.now().toString(),
-      studentId: currentUser.id,
+      studentId: targetStudentId,
       date,
       examType,
       correct: correctNum,

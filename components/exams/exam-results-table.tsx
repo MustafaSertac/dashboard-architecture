@@ -18,15 +18,18 @@ import type { ExamType } from "@/lib/types";
 
 interface ExamResultsTableProps {
   examType: ExamType;
+  studentId?: string;
 }
 
-export function ExamResultsTable({ examType }: ExamResultsTableProps) {
+export function ExamResultsTable({ examType, studentId: propStudentId }: ExamResultsTableProps) {
   const { examResults, currentUser, updateExamResult } = useApp();
+
+  const studentId = propStudentId || currentUser.id;
 
   const filteredResults = examResults
     .filter(
       (exam) =>
-        exam.examType === examType && exam.studentId === currentUser.id
+        exam.examType === examType && exam.studentId === studentId
     )
     .sort((a, b) => b.date.localeCompare(a.date));
 

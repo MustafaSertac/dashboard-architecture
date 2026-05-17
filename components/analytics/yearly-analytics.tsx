@@ -12,7 +12,11 @@ import { ChevronRight, BookOpen, GitBranch, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockYearlyStats } from "@/lib/mock-data";
 
-export function YearlyAnalytics() {
+interface YearlyAnalyticsProps {
+  studentId?: string;
+}
+
+export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
   const [expandedCourses, setExpandedCourses] = useState<string[]>([]);
   const [expandedBranches, setExpandedBranches] = useState<string[]>([]);
 

@@ -15,7 +15,11 @@ import { cn } from "@/lib/utils";
 import { mockMonthlyStats, mockMonthlyTopicStats } from "@/lib/mock-data";
 import type { FilterStatus } from "@/lib/types";
 
-export function MonthlyAnalytics() {
+interface MonthlyAnalyticsProps {
+  studentId?: string;
+}
+
+export function MonthlyAnalytics({ studentId }: MonthlyAnalyticsProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [expandedCourses, setExpandedCourses] = useState<string[]>([]);
   const [expandedBranches, setExpandedBranches] = useState<string[]>([]);
