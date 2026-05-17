@@ -12,19 +12,46 @@ export interface User {
 // Mock Exam Types
 export type ExamType = "TYT" | "AYT";
 
+// Ders bazlı sonuç
+export interface SubjectResult {
+  subjectName: string;
+  questionCount: number; // O dersteki toplam soru sayısı
+  correct: number;
+  wrong: number;
+  empty: number;
+  net: number;
+  // Detaylı konu analizi (opsiyonel)
+  topicDetails?: TopicDetail[];
+}
+
+// Konu detayı - hangi konudan kaç soru geldi ve kaç doğru/yanlış
+export interface TopicDetail {
+  topicName: string;
+  subtopicName?: string;
+  questionNumbers: number[]; // Hangi sorular bu konudan (1, 5, 12 gibi)
+  correct: number;
+  wrong: number;
+  empty: number;
+}
+
 export interface ExamResult {
   id: string;
   studentId: string;
   date: string;
   examType: ExamType;
-  correct: number;
-  wrong: number;
-  empty: number;
-  net: number;
+  examName?: string; // Örn: "ÖSYM 2024 Deneme 1"
+  // Genel toplam
+  totalCorrect: number;
+  totalWrong: number;
+  totalEmpty: number;
+  totalNet: number;
+  // Ders bazlı sonuçlar (zorunlu)
+  subjectResults: SubjectResult[];
+  // Analiz tamamlandı mı
   analysisCompleted: boolean;
-  topics?: TopicResult[];
 }
 
+// Eski TopicResult (geriye uyumluluk için)
 export interface TopicResult {
   subject: string;
   topic: string;

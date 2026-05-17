@@ -10,11 +10,11 @@ export function QuickStatsCard() {
   const studentTasks = tasks.filter((t) => t.studentId === currentUser.id);
   const studentExams = examResults.filter((e) => e.studentId === currentUser.id);
 
-  const totalSolved = studentTasks.reduce((sum, t) => sum + t.solvedCount, 0);
+  const totalSolved = studentTasks.reduce((sum, t) => sum + t.completedQuestions, 0);
   const completedTasks = studentTasks.filter((t) => t.status === "completed").length;
   const pendingTasks = studentTasks.filter((t) => t.status !== "completed").length;
   const latestNet = studentExams.length > 0 
-    ? studentExams.sort((a, b) => b.date.localeCompare(a.date))[0].net 
+    ? studentExams.sort((a, b) => b.date.localeCompare(a.date))[0].totalEmpty 
     : 0;
 
   const stats = [

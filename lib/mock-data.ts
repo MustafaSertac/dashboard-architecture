@@ -1,4 +1,4 @@
-import { User, ExamResult, Task, DayStats, SubjectStats, CourseStats } from "./types";
+import { User, ExamResult, Task, DayStats, SubjectStats, CourseStats, SubjectResult } from "./types";
 
 // Mock Users
 export const mockUsers: User[] = [
@@ -11,74 +11,133 @@ export const mockUsers: User[] = [
   { id: "7", name: "Selin Kaya", email: "selin@edu.com", role: "student" },
 ];
 
-// Mock Exam Results
+// Helper function to create TYT subject results
+function createTYTSubjectResults(multiplier: number = 1): SubjectResult[] {
+  return [
+    { subjectName: "Türkçe", questionCount: 40, correct: Math.round(32 * multiplier), wrong: Math.round(5 * multiplier), empty: Math.round(3 * multiplier), net: Math.round(32 * multiplier) - Math.round(5 * multiplier) * 0.25 },
+    { subjectName: "Matematik", questionCount: 40, correct: Math.round(28 * multiplier), wrong: Math.round(8 * multiplier), empty: Math.round(4 * multiplier), net: Math.round(28 * multiplier) - Math.round(8 * multiplier) * 0.25 },
+    { subjectName: "Fizik", questionCount: 7, correct: Math.round(5 * multiplier), wrong: Math.round(1 * multiplier), empty: Math.round(1 * multiplier), net: Math.round(5 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Kimya", questionCount: 7, correct: Math.round(4 * multiplier), wrong: Math.round(2 * multiplier), empty: Math.round(1 * multiplier), net: Math.round(4 * multiplier) - Math.round(2 * multiplier) * 0.25 },
+    { subjectName: "Biyoloji", questionCount: 6, correct: Math.round(5 * multiplier), wrong: Math.round(1 * multiplier), empty: 0, net: Math.round(5 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Tarih", questionCount: 5, correct: Math.round(4 * multiplier), wrong: Math.round(1 * multiplier), empty: 0, net: Math.round(4 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Coğrafya", questionCount: 5, correct: Math.round(3 * multiplier), wrong: Math.round(1 * multiplier), empty: Math.round(1 * multiplier), net: Math.round(3 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Felsefe", questionCount: 5, correct: Math.round(4 * multiplier), wrong: Math.round(1 * multiplier), empty: 0, net: Math.round(4 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Din Kültürü", questionCount: 5, correct: Math.round(4 * multiplier), wrong: 0, empty: Math.round(1 * multiplier), net: Math.round(4 * multiplier) },
+  ];
+}
+
+// Helper function to create AYT subject results
+function createAYTSubjectResults(multiplier: number = 1): SubjectResult[] {
+  return [
+    { subjectName: "Matematik", questionCount: 40, correct: Math.round(25 * multiplier), wrong: Math.round(10 * multiplier), empty: Math.round(5 * multiplier), net: Math.round(25 * multiplier) - Math.round(10 * multiplier) * 0.25 },
+    { subjectName: "Fizik", questionCount: 14, correct: Math.round(9 * multiplier), wrong: Math.round(3 * multiplier), empty: Math.round(2 * multiplier), net: Math.round(9 * multiplier) - Math.round(3 * multiplier) * 0.25 },
+    { subjectName: "Kimya", questionCount: 13, correct: Math.round(8 * multiplier), wrong: Math.round(3 * multiplier), empty: Math.round(2 * multiplier), net: Math.round(8 * multiplier) - Math.round(3 * multiplier) * 0.25 },
+    { subjectName: "Biyoloji", questionCount: 13, correct: Math.round(9 * multiplier), wrong: Math.round(2 * multiplier), empty: Math.round(2 * multiplier), net: Math.round(9 * multiplier) - Math.round(2 * multiplier) * 0.25 },
+    { subjectName: "Türk Dili ve Edebiyatı", questionCount: 24, correct: Math.round(18 * multiplier), wrong: Math.round(4 * multiplier), empty: Math.round(2 * multiplier), net: Math.round(18 * multiplier) - Math.round(4 * multiplier) * 0.25 },
+    { subjectName: "Tarih", questionCount: 10, correct: Math.round(7 * multiplier), wrong: Math.round(2 * multiplier), empty: Math.round(1 * multiplier), net: Math.round(7 * multiplier) - Math.round(2 * multiplier) * 0.25 },
+    { subjectName: "Coğrafya", questionCount: 6, correct: Math.round(4 * multiplier), wrong: Math.round(1 * multiplier), empty: Math.round(1 * multiplier), net: Math.round(4 * multiplier) - Math.round(1 * multiplier) * 0.25 },
+    { subjectName: "Felsefe Grubu", questionCount: 12, correct: Math.round(8 * multiplier), wrong: Math.round(2 * multiplier), empty: Math.round(2 * multiplier), net: Math.round(8 * multiplier) - Math.round(2 * multiplier) * 0.25 },
+    { subjectName: "Din Kültürü", questionCount: 6, correct: Math.round(5 * multiplier), wrong: 0, empty: Math.round(1 * multiplier), net: Math.round(5 * multiplier) },
+  ];
+}
+
+// Calculate totals from subject results
+function calculateTotals(subjectResults: SubjectResult[]) {
+  const totalCorrect = subjectResults.reduce((sum, s) => sum + s.correct, 0);
+  const totalWrong = subjectResults.reduce((sum, s) => sum + s.wrong, 0);
+  const totalEmpty = subjectResults.reduce((sum, s) => sum + s.empty, 0);
+  const totalNet = totalCorrect - totalWrong * 0.25;
+  return { totalCorrect, totalWrong, totalEmpty, totalNet };
+}
+
+// Mock Exam Results with new structure
 export const mockExamResults: ExamResult[] = [
-  {
-    id: "1",
-    studentId: "3",
-    date: "2026-05-01",
-    examType: "TYT",
-    correct: 85,
-    wrong: 25,
-    empty: 10,
-    net: 78.75,
-    analysisCompleted: true,
-  },
-  {
-    id: "2",
-    studentId: "3",
-    date: "2026-05-08",
-    examType: "TYT",
-    correct: 90,
-    wrong: 20,
-    empty: 10,
-    net: 85.0,
-    analysisCompleted: true,
-  },
-  {
-    id: "3",
-    studentId: "3",
-    date: "2026-05-15",
-    examType: "TYT",
-    correct: 88,
-    wrong: 22,
-    empty: 10,
-    net: 82.5,
-    analysisCompleted: false,
-  },
-  {
-    id: "4",
-    studentId: "3",
-    date: "2026-05-01",
-    examType: "AYT",
-    correct: 55,
-    wrong: 15,
-    empty: 10,
-    net: 51.25,
-    analysisCompleted: true,
-  },
-  {
-    id: "5",
-    studentId: "3",
-    date: "2026-05-08",
-    examType: "AYT",
-    correct: 60,
-    wrong: 12,
-    empty: 8,
-    net: 57.0,
-    analysisCompleted: true,
-  },
-  {
-    id: "6",
-    studentId: "3",
-    date: "2026-05-15",
-    examType: "AYT",
-    correct: 62,
-    wrong: 10,
-    empty: 8,
-    net: 59.5,
-    analysisCompleted: false,
-  },
+  // Elif's TYT exams
+  (() => {
+    const subjectResults = createTYTSubjectResults(1);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "1",
+      studentId: "3",
+      date: "2026-05-01",
+      examType: "TYT" as const,
+      examName: "Mayıs TYT Deneme 1",
+      ...totals,
+      subjectResults,
+      analysisCompleted: true,
+    };
+  })(),
+  (() => {
+    const subjectResults = createTYTSubjectResults(1.05);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "2",
+      studentId: "3",
+      date: "2026-05-08",
+      examType: "TYT" as const,
+      examName: "Mayıs TYT Deneme 2",
+      ...totals,
+      subjectResults,
+      analysisCompleted: true,
+    };
+  })(),
+  (() => {
+    const subjectResults = createTYTSubjectResults(1.1);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "3",
+      studentId: "3",
+      date: "2026-05-15",
+      examType: "TYT" as const,
+      examName: "Mayıs TYT Deneme 3",
+      ...totals,
+      subjectResults,
+      analysisCompleted: false,
+    };
+  })(),
+  // Elif's AYT exams
+  (() => {
+    const subjectResults = createAYTSubjectResults(1);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "4",
+      studentId: "3",
+      date: "2026-05-01",
+      examType: "AYT" as const,
+      examName: "Mayıs AYT Deneme 1",
+      ...totals,
+      subjectResults,
+      analysisCompleted: true,
+    };
+  })(),
+  (() => {
+    const subjectResults = createAYTSubjectResults(1.08);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "5",
+      studentId: "3",
+      date: "2026-05-08",
+      examType: "AYT" as const,
+      examName: "Mayıs AYT Deneme 2",
+      ...totals,
+      subjectResults,
+      analysisCompleted: true,
+    };
+  })(),
+  (() => {
+    const subjectResults = createAYTSubjectResults(1.15);
+    const totals = calculateTotals(subjectResults);
+    return {
+      id: "6",
+      studentId: "3",
+      date: "2026-05-15",
+      examType: "AYT" as const,
+      examName: "Mayıs AYT Deneme 3",
+      ...totals,
+      subjectResults,
+      analysisCompleted: false,
+    };
+  })(),
 ];
 
 // Mock Tasks
