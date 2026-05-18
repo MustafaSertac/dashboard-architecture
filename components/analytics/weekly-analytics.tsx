@@ -92,6 +92,35 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
     });
   }, [currentWeekStart, weekEnd, tasks, studentId]);
 
+  // Daily (today) summary
+  const today = new Date();
+  const todayData = useMemo(() => {
+    const day = weekDays.find((d) => isSameDay(d.date, today));
+    if (day) return day;
+    // if today is outside the current week, compute from tasks directly
+    const dayTasks = tasks.filter(
+      (task) => task.studentId === studentId && isSameDay(new Date(task.dueDate), today)
+    );
+    const subjectMap = new Map<string, { questions: number; correct: number; hours: number }>();
+    dayTasks.forEach((task) => {
+      const existing = subjectMap.get(task.subject) || { questions: 0, correct: 0, hours: 0 };
+      subjectMap.set(task.subject, {
+        questions: existing.questions + (task.completedQuestions || 0),
+        correct: existing.correct + (task.correctAnswers || 0),
+        hours: existing.hours + (task.hoursStudied || 0),
+      });
+    });
+    const subjects = Array.from(subjectMap.entries()).map(([name, data]) => ({ name, ...data }));
+    return {
+      date: today,
+      dayName: format(today, "EEEE", { locale: tr }),
+      subjects,
+      totalQuestions: subjects.reduce((sum, s) => sum + s.questions, 0),
+      totalCorrect: subjects.reduce((sum, s) => sum + s.correct, 0),
+      totalHours: subjects.reduce((sum, s) => sum + s.hours, 0),
+    } as DayAnalytics;
+  }, [weekDays, tasks, studentId]);
+
   const weeklyTotals = useMemo(() => {
     return weekDays.reduce(
       (acc, day) => ({
@@ -115,6 +144,67 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
     });
     return Array.from(subjectSet);
   }, [weekDays]);
+
+  const tableColSpan = weekDays.length + 1; // Ders + days
+
+  // Weekly comparison for the last 6 weeks (including current)
+  const comparisonWeeks = useMemo(() => {
+    const weeks = [] as {
+      start: Date;
+      end: Date;
+      label: string;
+      questions: number;
+      correct: number;
+      target: number;
+      hours: number;
+    }[];
+
+    for (let i = 5; i >= 0; i--) {
+      const start = startOfWeek(subWeeks(currentWeekStart, i), { weekStartsOn: 1 });
+      const end = endOfWeek(start, { weekStartsOn: 1 });
+      const days = eachDayOfInterval({ start, end });
+      const totals = days.reduce(
+        (acc, day) => {
+          const dayTasks = tasks.filter(
+            (task) => task.studentId === studentId && isSameDay(new Date(task.dueDate), day)
+          );
+
+          const d = weekDays.find((w) => isSameDay(w.date, day));
+          if (d) {
+            acc.questions += d.totalQuestions;
+            acc.correct += d.totalCorrect;
+            acc.hours += d.totalHours;
+          } else {
+            dayTasks.forEach((t) => {
+              acc.questions += t.completedQuestions || 0;
+              acc.correct += t.correctAnswers || 0;
+              acc.hours += t.hoursStudied || 0;
+            });
+          }
+
+          // Sum target/assigned questions from tasks for every day
+          dayTasks.forEach((t) => {
+            acc.target += t.questionCount || 0;
+          });
+
+          return acc;
+        },
+        { questions: 0, correct: 0, hours: 0, target: 0 }
+      );
+
+      weeks.push({
+        start,
+        end,
+        label: `${format(start, "d MMM")}-${format(end, "d MMM")}`,
+        questions: totals.questions,
+        correct: totals.correct,
+        target: totals.target,
+        hours: Number(totals.hours.toFixed(1)),
+      });
+    }
+
+    return weeks;
+  }, [currentWeekStart, weekDays, tasks, studentId]);
 
   return (
     <div className="space-y-6">
@@ -147,6 +237,8 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
       </Card>
 
       {/* Weekly Summary */}
+      {/* Daily Summary (Today) */}
+      
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
@@ -161,7 +253,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Target className="size-4" />
-              <span className="text-xs">Dogru</span>
+              <span className="text-xs">Doğru</span>
             </div>
             <p className="mt-1 text-2xl font-bold">{weeklyTotals.correct}</p>
           </CardContent>
@@ -179,7 +271,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <TrendingUp className="size-4" />
-              <span className="text-xs">Basari Orani</span>
+              <span className="text-xs">Başarı Oranı</span>
             </div>
             <p className="mt-1 text-2xl font-bold">
               {weeklyTotals.questions > 0
@@ -198,7 +290,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] border-collapse">
+            <table className="w-full min-w-175 border-collapse">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="p-3 text-left font-medium">Ders</th>
@@ -223,13 +315,13 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                       </div>
                     </th>
                   ))}
-                  <th className="p-3 text-center font-medium">Toplam</th>
+                  {/* removed aggregate side columns - totals now in footer per day */}
                 </tr>
               </thead>
               <tbody>
                 {allSubjects.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={tableColSpan} className="p-8 text-center text-muted-foreground">
                       Bu hafta icin veri bulunmuyor
                     </td>
                   </tr>
@@ -238,6 +330,14 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                     const subjectTotal = weekDays.reduce((sum, day) => {
                       const s = day.subjects.find((s) => s.name === subject);
                       return sum + (s?.questions || 0);
+                    }, 0);
+                    const subjectCorrect = weekDays.reduce((sum, day) => {
+                      const s = day.subjects.find((s) => s.name === subject);
+                      return sum + (s?.correct || 0);
+                    }, 0);
+                    const subjectHours = weekDays.reduce((sum, day) => {
+                      const s = day.subjects.find((s) => s.name === subject);
+                      return sum + (s?.hours || 0);
                     }, 0);
 
                     return (
@@ -255,10 +355,11 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                             >
                               {s ? (
                                 <div className="space-y-1">
-                                  <div className="font-medium">{s.questions}</div>
+                                  <div className="font-medium">{s.questions +"/"+ s.correct}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {s.correct} dogru
+                                    {s.hours.toFixed(1)} saat
                                   </div>
+                                  <div> </div>
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
@@ -266,7 +367,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                             </td>
                           );
                         })}
-                        <td className="p-3 text-center font-bold">{subjectTotal}</td>
+                        {/* side totals removed - only per-day cells shown for each subject */}
                       </tr>
                     );
                   })
@@ -275,7 +376,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
               {allSubjects.length > 0 && (
                 <tfoot>
                   <tr className="border-t bg-muted/30">
-                    <td className="p-3 font-bold">Gunluk Toplam</td>
+                    <td className="p-3 font-bold">Toplam Soru</td>
                     {weekDays.map((day) => (
                       <td
                         key={day.date.toISOString()}
@@ -287,9 +388,46 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                         {day.totalQuestions}
                       </td>
                     ))}
-                    <td className="p-3 text-center font-bold text-primary">
-                      {weeklyTotals.questions}
-                    </td>
+                    {/* removed weekly aggregate columns */}
+                  </tr>
+
+                  <tr className="border-t bg-muted/10">
+                    <td className="p-3 font-bold">Çözülen</td>
+                    {weekDays.map((day) => (
+                      <td
+                        key={day.date.toISOString()}
+                        className="p-3 text-center"
+                      >
+                        {day.totalCorrect}
+                      </td>
+                    ))}
+                    {/* removed weekly aggregate columns */}
+                  </tr>
+
+                  <tr className="border-t bg-muted/10">
+                    <td className="p-3 font-bold">Toplam Saat</td>
+                    {weekDays.map((day) => (
+                      <td
+                        key={day.date.toISOString()}
+                        className="p-3 text-center"
+                      >
+                        {day.totalHours.toFixed(1)}
+                      </td>
+                    ))}
+                    {/* removed weekly aggregate columns */}
+                  </tr>
+
+                  <tr className="border-t bg-muted/30">
+                    <td className="p-3 font-bold">Başarı %</td>
+                    {weekDays.map((day) => (
+                      <td
+                        key={day.date.toISOString()}
+                        className="p-3 text-center font-bold"
+                      >
+                        {day.totalQuestions > 0 ? Math.round((day.totalCorrect / day.totalQuestions) * 100) : 0}%
+                      </td>
+                    ))}
+                    {/* removed weekly aggregate columns */}
                   </tr>
                 </tfoot>
               )}
@@ -298,40 +436,45 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
         </CardContent>
       </Card>
 
+      
+
       {/* Subject Progress */}
       <Card>
         <CardHeader>
-          <CardTitle>Haftalik Ders Dagilimi</CardTitle>
+          <CardTitle>Haftalar Arasi Karsilastirma</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {allSubjects.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">Veri bulunmuyor</p>
-          ) : (
-            allSubjects.map((subject) => {
-              const total = weekDays.reduce((sum, day) => {
-                const s = day.subjects.find((s) => s.name === subject);
-                return sum + (s?.questions || 0);
-              }, 0);
-              const percentage =
-                weeklyTotals.questions > 0
-                  ? (total / weeklyTotals.questions) * 100
-                  : 0;
-
-              return (
-                <div key={subject} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{subject}</span>
-                    <span className="text-muted-foreground">
-                      {total} soru ({percentage.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <Progress value={percentage} className="h-2" />
-                </div>
-              );
-            })
-          )}
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-150 border-collapse">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="p-3 text-left font-medium">Hafta</th>
+                  <th className="p-3 text-center font-medium">Toplam Hedef Soru</th>
+                  <th className="p-3 text-center font-medium">Cozulen Soru</th>
+                  <th className="p-3 text-center font-medium">Dogru</th>
+                  <th className="p-3 text-center font-medium">Calisma Saat</th>
+                  <th className="p-3 text-center font-medium">Basari %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonWeeks.map((w) => (
+                  <tr key={w.label} className="border-b last:border-b-0">
+                    <td className="p-3 font-medium">{w.label}</td>
+                    <td className="p-3 text-center">{w.target}</td>
+                    <td className="p-3 text-center">{w.questions}</td>
+                    <td className="p-3 text-center">{w.correct}</td>
+                    <td className="p-3 text-center">{w.hours.toFixed(1)}</td>
+                    <td className="p-3 text-center font-bold">
+                      {w.questions > 0 ? Math.round((w.correct / w.questions) * 100) : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
+      
     </div>
   );
 }
