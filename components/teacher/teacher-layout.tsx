@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/hooks";
-import { useStudentContext } from "@/lib/hooks";
+import { useAuth } from "@/lib/auth-context";
+import { useStudentContext } from "@/lib/student-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {

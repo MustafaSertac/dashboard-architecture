@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useStudentContext } from "@/lib/hooks";
+import { useStudentContext } from "@/lib/student-context";
 
 export default function StudentLayout({
   children,

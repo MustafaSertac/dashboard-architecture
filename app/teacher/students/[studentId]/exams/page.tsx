@@ -8,7 +8,7 @@ import { ExamTrendsChart } from "@/components/exams/exam-trends-chart";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
-import { useStudentContext } from "@/lib/hooks";
+import { useStudentContext } from "@/lib/student-context";
 import { StudentHeader } from "@/components/teacher/student-header";
 
 export default function StudentExamsPage() {

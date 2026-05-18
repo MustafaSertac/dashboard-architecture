@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeeklyAnalytics } from "@/components/analytics/weekly-analytics";
 import { MonthlyAnalytics } from "@/components/analytics/monthly-analytics";
 import { YearlyAnalytics } from "@/components/analytics/yearly-analytics";
-import { useStudentContext } from "@/lib/hooks";
+import { useStudentContext } from "@/lib/student-context";
 import { StudentHeader } from "@/components/teacher/student-header";
 
 export default function StudentAnalyticsPage() {
