@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/lib/hooks";
 import { Loader2 } from "lucide-react";
 
 const PUBLIC_PATHS = ["/login", "/register"];

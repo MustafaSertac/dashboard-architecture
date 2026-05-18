@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/lib/auth-context";
-import { AppProvider } from "@/lib/context";
+import AppProviders from "@/src/providers/AppProviders";
+import { AuthInitializer, StudentInitializer } from "@/lib/init/initializers";
 import { AuthGuard } from "@/components/auth-guard";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -37,14 +37,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <AppProvider>
-              <AuthGuard>
-                {children}
-              </AuthGuard>
-              <Toaster />
-            </AppProvider>
-          </AuthProvider>
+          <AuthInitializer />
+          <StudentInitializer />
+          <AppProviders>
+            <AuthGuard>{children}</AuthGuard>
+            <Toaster />
+          </AppProviders>
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>

@@ -1,4 +1,3 @@
-import { StudentProvider } from "@/lib/student-context";
 import { TeacherLayout } from "@/components/teacher/teacher-layout";
 
 export default function TeacherRootLayout({
@@ -6,9 +5,5 @@ export default function TeacherRootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <StudentProvider>
-      <TeacherLayout>{children}</TeacherLayout>
-    </StudentProvider>
-  );
+  return <TeacherLayout>{children}</TeacherLayout>;
 }
