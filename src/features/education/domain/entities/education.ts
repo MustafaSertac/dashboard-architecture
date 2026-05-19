@@ -1,0 +1,91 @@
+export const TYT_SUBJECTS = [
+  "Türkçe",
+  "Matematik",
+  "Fizik",
+  "Kimya",
+  "Biyoloji",
+  "Tarih",
+  "Coğrafya",
+  "Felsefe",
+] as const;
+
+export const AYT_SUBJECTS = [
+  "Matematik",
+  "Fizik",
+  "Kimya",
+  "Biyoloji",
+  "Edebiyat",
+  "Tarih",
+  "Coğrafya",
+  "Felsefe",
+] as const;
+
+export const TOPICS_BY_SUBJECT: Record<string, string[]> = {
+  Türkçe: [
+    "Sözcükte Anlam",
+    "Cümle Yorumu",
+    "Paragraf",
+    "Dil Bilgisi",
+    "Anlatım Bozuklukları",
+  ],
+  Matematik: [
+    "Temel Kavramlar",
+    "Sayılar",
+    "Fonksiyonlar",
+    "Polinomlar",
+    "Trigonometri",
+    "Logaritma",
+    "Diziler",
+    "Limit ve Türev",
+    "İntegral",
+  ],
+  Fizik: [
+    "Kuvvet ve Hareket",
+    "Enerji",
+    "Elektrik",
+    "Manyetizma",
+    "Optik",
+    "Dalgalar",
+  ],
+  Kimya: [
+    "Atom ve Periyodik Sistem",
+    "Kimyasal Bağlar",
+    "Mol Kavramı",
+    "Gazlar",
+    "Çözeltiler",
+    "Reaksiyonlar",
+  ],
+  Biyoloji: [
+    "Hücre",
+    "Canlılar",
+    "Genetik",
+    "Ekoloji",
+    "Sistemler",
+  ],
+  Tarih: [
+    "İlk Çağlar",
+    "Orta Çağ",
+    "Osmanlı",
+    "İnkılap Tarihi",
+    "Çağdaş Dünya",
+  ],
+  Coğrafya: [
+    "Fiziki Coğrafya",
+    "Beşeri Coğrafya",
+    "Türkiye Coğrafyası",
+    "Bölge Coğrafyası",
+  ],
+  Felsefe: [
+    "Felsefeye Giriş",
+    "Bilgi Felsefesi",
+    "Varlık Felsefesi",
+    "Ahlak Felsefesi",
+  ],
+  Edebiyat: [
+    "Edebi Bilgiler",
+    "Dönemler",
+    "Edebi Türler",
+    "Divan Edebiyatı",
+    "Halk Edebiyatı",
+  ],
+};
