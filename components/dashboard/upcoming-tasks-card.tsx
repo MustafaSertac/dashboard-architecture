@@ -14,36 +14,36 @@ export function UpcomingTasksCard() {
     .filter((task) => {
       // guard: ensure we have a logged-in user and a valid date string
       if (!currentUser?.id) return false;
-      if (!task?.date || typeof task.date !== "string") return false;
+      if (!task?.dueDate   || typeof task.dueDate !== "string") return false;
       try {
         return (
           task.studentId === currentUser.id &&
-          isAfter(parseISO(task.date), parseISO(today))
+          isAfter(parseISO(task.dueDate), parseISO(today))
         );
       } catch (e) {
         return false;
       }
     })
-    .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+    .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
     .slice(0, 5);
 
   // Group tasks by date
   const groupedTasks = upcomingTasks.reduce((acc, task) => {
-    if (!acc[task.date]) {
-      acc[task.date] = [];
+    if (!acc[task.dueDate]) {
+      acc[task.dueDate] = [];
     }
-    acc[task.date].push(task);
+    acc[task.dueDate].push(task);
     return acc;
   }, {} as Record<string, typeof upcomingTasks>);
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Yaklasan Gorevler</CardTitle>
+        <CardTitle className="text-base font-semibold">Eksik Gorevler</CardTitle>
       </CardHeader>
       <CardContent>
         {upcomingTasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Yaklasan gorev yok.</p>
+          <p className="text-sm text-muted-foreground">Tamamlanmayan gorev yok.</p>
         ) : (
           <div className="space-y-4">
             {Object.entries(groupedTasks).map(([date, dateTasks]) => (
