@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { format, subDays, parseISO, startOfDay } from "date-fns";
+import { format, subDays, startOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
 
 export function WeeklyProgressCard() {
@@ -26,11 +26,11 @@ export function WeeklyProgressCard() {
       const date = subDays(today, i);
       const dateStr = format(date, "yyyy-MM-dd");
       const dayTasks = tasks.filter(
-        (t) => t.studentId === currentUser.id && t.date === dateStr
+        (t) => t.studentId === currentUser.id && t.dueDate === dateStr
       );
       
-      const solved = dayTasks.reduce((sum, t) => sum + t.solvedCount, 0);
-      const correct = dayTasks.reduce((sum, t) => sum + t.correctCount, 0);
+      const solved = dayTasks.reduce((sum, t) => sum + t.completedQuestions, 0);
+      const correct = dayTasks.reduce((sum, t) => sum + t.correctAnswers, 0);
       
       data.push({
         day: format(date, "EEE", { locale: tr }),
