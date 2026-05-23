@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, Target, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -129,11 +129,12 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
   };
 
   // SVG circle parameters
-  const size = 140;
-  const strokeWidth = 10;
+  const size = 100;
+  const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
+  const strokeDashoffset =
+    circumference - (progressPercentage / 100) * circumference;
 
   return (
     <Card
@@ -144,157 +145,134 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
     >
       {/* Subtle glow effect when running */}
       {isRunning && (
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       )}
 
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Target className="size-4 text-primary" />
-            Calisma Zamanlayici
-          </CardTitle>
-          {progressPercentage >= 100 && (
-            <Flame className="size-5 text-warning animate-pulse" />
-          )}
-        </div>
-      </CardHeader>
+      <CardContent className="p-4 md:p-6">
+        {/* Horizontal layout */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+          {/* Left: Title + Timer Ring + Controls */}
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Timer Ring */}
+            <div className="relative shrink-0">
+              <svg width={size} height={size} className="transform -rotate-90">
+                {/* Background circle */}
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  fill="none"
+                  stroke="hsl(var(--muted))"
+                  strokeWidth={strokeWidth}
+                />
+                {/* Progress circle */}
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  className={cn(
+                    "transition-all duration-500 ease-out",
+                    isRunning && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
+                  )}
+                />
+              </svg>
+              {/* Timer text in center */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span
+                  className={cn(
+                    "font-mono text-lg font-bold tracking-tight",
+                    isRunning && "text-primary"
+                  )}
+                >
+                  {formatTime(elapsedSeconds)}
+                </span>
+              </div>
+            </div>
 
-      <CardContent className="space-y-4">
-        {/* Timer Display with Progress Ring */}
-        <div className="flex flex-col items-center">
-          <div className="relative">
-            <svg
-              width={size}
-              height={size}
-              className="transform -rotate-90"
-            >
-              {/* Background circle */}
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="hsl(var(--muted))"
-                strokeWidth={strokeWidth}
-              />
-              {/* Progress circle */}
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                className={cn(
-                  "transition-all duration-500 ease-out",
-                  isRunning && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
+            {/* Title + Session info */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Target className="size-4 text-primary" />
+                <span className="font-semibold">Calisma Zamanlayici</span>
+                {progressPercentage >= 100 && (
+                  <Flame className="size-4 text-warning animate-pulse" />
                 )}
-              />
-            </svg>
-            {/* Timer text in center */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span
-                className={cn(
-                  "font-mono text-2xl font-bold tracking-tight",
-                  isRunning && "text-primary"
-                )}
-              >
-                {formatTime(elapsedSeconds)}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Bu seans
-              </span>
+              </div>
+              <p className="text-sm text-muted-foreground italic">
+                {getMotivationalMessage()}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Control Buttons */}
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleReset}
-            disabled={elapsedSeconds === 0 && !isRunning}
-            className="size-10 rounded-full transition-transform hover:scale-105"
-          >
-            <RotateCcw className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            onClick={handlePlayPause}
-            className={cn(
-              "size-12 rounded-full transition-all duration-200 hover:scale-105",
-              isRunning
-                ? "bg-warning hover:bg-warning/90 text-warning-foreground"
-                : "bg-primary hover:bg-primary/90"
-            )}
-          >
-            {isRunning ? (
-              <Pause className="size-5" />
-            ) : (
-              <Play className="size-5 ml-0.5" />
-            )}
-          </Button>
-          <div className="size-10" /> {/* Spacer for symmetry */}
-        </div>
-
-        {/* Daily Goal Progress */}
-        <div className="space-y-3 rounded-lg bg-muted/50 p-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Gunluk Hedef</span>
-            <span className="font-semibold">{dailyGoalHours} Saat</span>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
+          {/* Center: Control Buttons */}
+          <div className="flex items-center gap-3 md:ml-auto">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleReset}
+              disabled={elapsedSeconds === 0 && !isRunning}
+              className="size-10 rounded-full transition-transform hover:scale-105"
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={handlePlayPause}
               className={cn(
-                "h-full rounded-full transition-all duration-500 ease-out",
-                progressPercentage >= 100
-                  ? "bg-success"
-                  : progressPercentage >= 50
-                  ? "bg-primary"
-                  : "bg-warning"
+                "size-12 rounded-full transition-all duration-200 hover:scale-105",
+                isRunning
+                  ? "bg-warning hover:bg-warning/90 text-warning-foreground"
+                  : "bg-primary hover:bg-primary/90"
               )}
-              style={{ width: `${progressPercentage}%` }}
-            />
+            >
+              {isRunning ? (
+                <Pause className="size-5" />
+              ) : (
+                <Play className="size-5 ml-0.5" />
+              )}
+            </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex flex-col">
-              <span className="text-muted-foreground text-xs">Tamamlanan</span>
-              <span className="font-medium text-primary">
+          {/* Right: Progress Stats */}
+          <div className="flex items-center gap-6 md:gap-8 rounded-lg bg-muted/50 px-4 py-3 md:ml-4">
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-muted-foreground">Hedef</span>
+              <span className="font-semibold">{dailyGoalHours}s</span>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-muted-foreground">Tamamlanan</span>
+              <span className="font-semibold text-primary">
                 {formatTimeReadable(totalStudiedSeconds)}
               </span>
             </div>
-            <div className="flex flex-col text-right">
-              <span className="text-muted-foreground text-xs">Kalan</span>
-              <span className="font-medium">
+            <div className="h-8 w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-muted-foreground">Kalan</span>
+              <span className="font-semibold">
                 {formatTimeReadable(remainingSeconds)}
               </span>
             </div>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Ilerleme</span>
-            <span
-              className={cn(
-                "font-semibold",
-                progressPercentage >= 100 ? "text-success" : "text-foreground"
-              )}
-            >
-              %{progressPercentage.toFixed(0)}
-            </span>
+            <div className="h-8 w-px bg-border" />
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-muted-foreground">Ilerleme</span>
+              <span
+                className={cn(
+                  "font-semibold",
+                  progressPercentage >= 100 ? "text-success" : "text-foreground"
+                )}
+              >
+                %{progressPercentage.toFixed(0)}
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* Motivational Message */}
-        <p className="text-center text-sm text-muted-foreground italic">
-          {getMotivationalMessage()}
-        </p>
       </CardContent>
     </Card>
   );

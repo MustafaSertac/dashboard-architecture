@@ -22,17 +22,13 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Top Section: Stats + Timer */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {/* Stats Cards - 4 columns on large screens */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:col-span-4 lg:grid-cols-4">
-          <QuickStatsCard />
-        </div>
-        {/* Timer Card - 1 column on large screens, spans full row on smaller */}
-        <div className="md:col-span-2 lg:col-span-1 lg:row-span-2">
-          <StudyTimerCard dailyGoalHours={6} />
-        </div>
+      {/* Stats Section */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+        <QuickStatsCard />
       </div>
+
+      {/* Timer Section - Full width horizontal card */}
+      <StudyTimerCard dailyGoalHours={6} />
 
       {/* Tasks Section */}
       <div className="grid gap-6 lg:grid-cols-2">
