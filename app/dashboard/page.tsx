@@ -6,6 +6,7 @@ import { UpcomingTasksCard } from "@/components/dashboard/upcoming-tasks-card";
 import { QuickStatsCard } from "@/components/dashboard/quick-stats-card";
 import { RecentExamsCard } from "@/components/dashboard/recent-exams-card";
 import { WeeklyProgressCard } from "@/components/dashboard/weekly-progress-card";
+import { StudyTimerCard } from "@/components/dashboard/study-timer-card";
 
 export default function DashboardPage() {
   const { currentUser } = useApp();
@@ -21,15 +22,25 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatsCard />
+      {/* Top Section: Stats + Timer */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* Stats Cards - 4 columns on large screens */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:col-span-4 lg:grid-cols-4">
+          <QuickStatsCard />
+        </div>
+        {/* Timer Card - 1 column on large screens, spans full row on smaller */}
+        <div className="md:col-span-2 lg:col-span-1 lg:row-span-2">
+          <StudyTimerCard dailyGoalHours={6} />
+        </div>
       </div>
 
+      {/* Tasks Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         <TodayTasksCard />
         <UpcomingTasksCard />
       </div>
 
+      {/* Progress & Exams Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         <WeeklyProgressCard />
         <RecentExamsCard />

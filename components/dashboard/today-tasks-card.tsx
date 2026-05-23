@@ -12,11 +12,11 @@ export function TodayTasksCard() {
   const today = new Date().toISOString().split("T")[0];
   
   const todayTasks = tasks.filter(
-    (task) => task.date === today && task.studentId === currentUser.id
+    (task) => task.dueDate === today && task.studentId === currentUser.id
   );
 
   const totalQuestions = todayTasks.reduce((sum, t) => sum + t.questionCount, 0);
-  const solvedQuestions = todayTasks.reduce((sum, t) => sum + t.solvedCount, 0);
+  const solvedQuestions = todayTasks.reduce((sum, t) => sum + t.completedQuestions, 0);
   const progress = totalQuestions > 0 ? (solvedQuestions / totalQuestions) * 100 : 0;
   const belowMinimum = solvedQuestions < 50;
 
@@ -63,10 +63,10 @@ export function TodayTasksCard() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">
-                      {task.solvedCount}/{task.questionCount}
+                      {task.completedQuestions}/{task.questionCount}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      D: {task.correctCount} Y: {task.wrongCount}
+                      D: {task.correctAnswers} Y: {task.wrongAnswers}
                     </p>
                   </div>
                 </div>
