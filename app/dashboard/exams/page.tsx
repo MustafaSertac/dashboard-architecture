@@ -1,18 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/context";
 import { ExamResultsTable } from "@/components/exams/exam-results-table";
 import { ExamInputModal } from "@/components/exams/exam-input-modal";
-import { ExamTrendsChart } from "@/components/exams/exam-trends-chart";
+import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 
 export default function ExamsPage() {
-  const { currentUser } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
-  const isTeacher = currentUser.role === "teacher" || currentUser.role === "admin";
 
   return (
     <div className="space-y-6">
@@ -29,19 +26,19 @@ export default function ExamsPage() {
         </Button>
       </div>
 
+      <ExamNetTrendCard />
+
       <Tabs defaultValue="TYT" className="space-y-4">
         <TabsList>
           <TabsTrigger value="TYT">TYT</TabsTrigger>
           <TabsTrigger value="AYT">AYT</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="TYT" className="space-y-6">
-          {isTeacher && <ExamTrendsChart examType="TYT" />}
+        <TabsContent value="TYT">
           <ExamResultsTable examType="TYT" />
         </TabsContent>
 
-        <TabsContent value="AYT" className="space-y-6">
-          {isTeacher && <ExamTrendsChart examType="AYT" />}
+        <TabsContent value="AYT">
           <ExamResultsTable examType="AYT" />
         </TabsContent>
       </Tabs>

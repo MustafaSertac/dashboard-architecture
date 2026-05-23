@@ -54,7 +54,7 @@ export function ExamTrendsChart({ examType, studentId }: ExamTrendsChartProps) {
             e.studentId === student.id
         );
         if (exam) {
-          dataPoint[student.name] = exam.net;
+          dataPoint[student.name] = Number(exam.totalNet.toFixed(1));
         }
       });
 

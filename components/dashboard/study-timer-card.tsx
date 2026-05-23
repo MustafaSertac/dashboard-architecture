@@ -262,7 +262,7 @@ export function StudyTimerCard({
     >
       {/* Glow */}
       <div
-        className="absolute inset-0 opacity-80"
+        className="absolute inset-0 opacity-80"d
         style={{
           background:
             "var(--timer-glow)",

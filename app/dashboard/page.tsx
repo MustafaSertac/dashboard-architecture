@@ -7,6 +7,7 @@ import { QuickStatsCard } from "@/components/dashboard/quick-stats-card";
 import { RecentExamsCard } from "@/components/dashboard/recent-exams-card";
 import { WeeklyProgressCard } from "@/components/dashboard/weekly-progress-card";
 import { StudyTimerCard } from "@/components/dashboard/study-timer-card";
+import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
 
 export default function DashboardPage() {
   const { currentUser } = useApp();
@@ -41,6 +42,8 @@ export default function DashboardPage() {
         <WeeklyProgressCard />
         <RecentExamsCard />
       </div>
+
+      <ExamNetTrendCard />
     </div>
   );
 }
