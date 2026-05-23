@@ -21,13 +21,8 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
   const [editSeconds, setEditSeconds] = useState("00");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Convert daily goal to seconds
   const dailyGoalSeconds = dailyGoalHours * 60 * 60;
-
-  // Calculate total studied time (previous + current session)
   const totalStudiedSeconds = todayStudiedSeconds + elapsedSeconds;
-
-  // Calculate progress percentage for the arc
   const progressPercentage = Math.min(
     (totalStudiedSeconds / dailyGoalSeconds) * 100,
     100
@@ -41,25 +36,30 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
       const parsed = JSON.parse(savedData);
       if (parsed.date === today) {
         setTodayStudiedSeconds(parsed.studiedSeconds || 0);
+        // Restore elapsed seconds if saved
+        if (parsed.currentElapsed) {
+          setElapsedSeconds(parsed.currentElapsed);
+        }
       } else {
         localStorage.setItem(
           "studyTimerData",
-          JSON.stringify({ date: today, studiedSeconds: 0 })
+          JSON.stringify({ date: today, studiedSeconds: 0, currentElapsed: 0 })
         );
       }
     }
   }, []);
 
-  // Save study time to localStorage when session ends
-  const saveStudyTime = useCallback(() => {
+  // Save current elapsed time periodically
+  const saveCurrentState = useCallback(() => {
     const today = new Date().toISOString().split("T")[0];
-    const newTotal = todayStudiedSeconds + elapsedSeconds;
     localStorage.setItem(
       "studyTimerData",
-      JSON.stringify({ date: today, studiedSeconds: newTotal })
+      JSON.stringify({ 
+        date: today, 
+        studiedSeconds: todayStudiedSeconds, 
+        currentElapsed: elapsedSeconds 
+      })
     );
-    setTodayStudiedSeconds(newTotal);
-    setElapsedSeconds(0);
   }, [todayStudiedSeconds, elapsedSeconds]);
 
   // Timer logic
@@ -82,7 +82,13 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
     };
   }, [isRunning]);
 
-  // Get time parts
+  // Save state when pausing
+  useEffect(() => {
+    if (!isRunning && elapsedSeconds > 0) {
+      saveCurrentState();
+    }
+  }, [isRunning, elapsedSeconds, saveCurrentState]);
+
   const getTimeParts = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -98,7 +104,6 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
 
   const handlePlayPause = () => {
     if (isEditing) {
-      // Apply manual time before starting
       const manualSeconds =
         parseInt(editHours || "0") * 3600 +
         parseInt(editMinutes || "0") * 60 +
@@ -106,14 +111,21 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
       setElapsedSeconds(manualSeconds);
       setIsEditing(false);
     }
-    if (isRunning) {
-      saveStudyTime();
-    }
     setIsRunning(!isRunning);
   };
 
   const handleReset = () => {
     setIsRunning(false);
+    // Save elapsed to total before resetting
+    if (elapsedSeconds > 0) {
+      const newTotal = todayStudiedSeconds + elapsedSeconds;
+      setTodayStudiedSeconds(newTotal);
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem(
+        "studyTimerData",
+        JSON.stringify({ date: today, studiedSeconds: newTotal, currentElapsed: 0 })
+      );
+    }
     setElapsedSeconds(0);
     setEditHours("00");
     setEditMinutes("00");
@@ -135,7 +147,6 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
   };
 
   const handleTimeBlur = () => {
-    // Validate and apply time
     const h = Math.min(99, Math.max(0, parseInt(editHours || "0")));
     const m = Math.min(59, Math.max(0, parseInt(editMinutes || "0")));
     const s = Math.min(59, Math.max(0, parseInt(editSeconds || "0")));
@@ -160,40 +171,23 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
     }
   };
 
-  // SVG arc parameters
-  const size = 280;
-  const strokeWidth = 12;
+  // Smaller SVG arc parameters
+  const size = 180;
+  const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  
-  // Arc starts from top (-90deg) and goes clockwise
-  // Progress determines how much of the arc is filled
   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800">
-      <CardContent className="p-6 md:p-8">
-        <div className="flex flex-col items-center justify-center">
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-500"
-              )}
-            />
-            <span className="text-sm text-slate-400">
-              {isRunning ? "Calisiyor" : "Durduruldu"}
-            </span>
-          </div>
-
-          {/* Timer Circle */}
-          <div className="relative">
+    <Card className="overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-slate-800/50">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Left: Timer Circle */}
+          <div className="relative flex-shrink-0">
             <svg width={size} height={size} className="transform -rotate-90">
-              {/* Glow filter */}
               <defs>
                 <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                   <feMerge>
                     <feMergeNode in="coloredBlur" />
                     <feMergeNode in="SourceGraphic" />
@@ -201,12 +195,10 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
                 </filter>
                 <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#0d9488" />
-                  <stop offset="50%" stopColor="#14b8a6" />
-                  <stop offset="100%" stopColor="#5eead4" />
+                  <stop offset="100%" stopColor="#2dd4bf" />
                 </linearGradient>
               </defs>
               
-              {/* Background circle (dark track) */}
               <circle
                 cx={size / 2}
                 cy={size / 2}
@@ -216,7 +208,6 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
                 strokeWidth={strokeWidth}
               />
               
-              {/* Progress arc with glow */}
               <circle
                 cx={size / 2}
                 cy={size / 2}
@@ -228,150 +219,144 @@ export function StudyTimerCard({ dailyGoalHours = 6 }: StudyTimerCardProps) {
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 filter={isRunning ? "url(#glow)" : "none"}
-                className="transition-all duration-500 ease-out"
+                className="transition-all duration-300"
               />
             </svg>
 
-            {/* Timer display in center */}
+            {/* Timer display */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {isEditing && !isRunning ? (
-                <div className="flex items-center gap-1">
-                  <div className="flex flex-col items-center">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={editHours}
-                      onChange={(e) =>
-                        handleInputChange(e.target.value, setEditHours, 99)
-                      }
-                      onBlur={handleTimeBlur}
-                      className="w-16 h-14 text-center text-3xl font-mono font-bold bg-slate-800/50 border-slate-700 text-white"
-                      maxLength={2}
-                    />
-                    <span className="text-xs text-slate-500 mt-1">Saat</span>
-                  </div>
-                  <span className="text-3xl font-bold text-slate-400 mb-5">:</span>
-                  <div className="flex flex-col items-center">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={editMinutes}
-                      onChange={(e) =>
-                        handleInputChange(e.target.value, setEditMinutes, 59)
-                      }
-                      onBlur={handleTimeBlur}
-                      className="w-16 h-14 text-center text-3xl font-mono font-bold bg-slate-800/50 border-slate-700 text-white"
-                      maxLength={2}
-                    />
-                    <span className="text-xs text-slate-500 mt-1">Dakika</span>
-                  </div>
-                  <span className="text-3xl font-bold text-slate-400 mb-5">:</span>
-                  <div className="flex flex-col items-center">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={editSeconds}
-                      onChange={(e) =>
-                        handleInputChange(e.target.value, setEditSeconds, 59)
-                      }
-                      onBlur={handleTimeBlur}
-                      className="w-16 h-14 text-center text-3xl font-mono font-bold bg-slate-800/50 border-slate-700 text-white"
-                      maxLength={2}
-                    />
-                    <span className="text-xs text-slate-500 mt-1">Saniye</span>
-                  </div>
+                <div className="flex items-center gap-0.5">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={editHours}
+                    onChange={(e) => handleInputChange(e.target.value, setEditHours, 99)}
+                    onBlur={handleTimeBlur}
+                    className="w-10 h-8 text-center text-lg font-mono font-bold bg-slate-800/50 border-slate-700 text-white px-1"
+                    maxLength={2}
+                  />
+                  <span className="text-lg font-bold text-slate-500">:</span>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={editMinutes}
+                    onChange={(e) => handleInputChange(e.target.value, setEditMinutes, 59)}
+                    onBlur={handleTimeBlur}
+                    className="w-10 h-8 text-center text-lg font-mono font-bold bg-slate-800/50 border-slate-700 text-white px-1"
+                    maxLength={2}
+                  />
+                  <span className="text-lg font-bold text-slate-500">:</span>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={editSeconds}
+                    onChange={(e) => handleInputChange(e.target.value, setEditSeconds, 59)}
+                    onBlur={handleTimeBlur}
+                    className="w-10 h-8 text-center text-lg font-mono font-bold bg-slate-800/50 border-slate-700 text-white px-1"
+                    maxLength={2}
+                  />
                 </div>
               ) : (
                 <div
                   onClick={handleTimeClick}
                   className={cn(
                     "flex flex-col items-center cursor-pointer transition-opacity",
-                    !isRunning && "hover:opacity-80"
+                    !isRunning && "hover:opacity-70"
                   )}
                 >
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl md:text-6xl font-mono font-bold text-white tracking-tight">
+                  <div className="flex items-center">
+                    <span className="text-3xl font-mono font-semibold text-white tabular-nums">
                       {timeParts.hours}
                     </span>
-                    <span className="text-5xl md:text-6xl font-mono font-bold text-teal-400">:</span>
-                    <span className="text-5xl md:text-6xl font-mono font-bold text-white tracking-tight">
+                    <span className="text-3xl font-mono font-semibold text-teal-400 mx-0.5">:</span>
+                    <span className="text-3xl font-mono font-semibold text-white tabular-nums">
                       {timeParts.minutes}
                     </span>
-                    <span className="text-5xl md:text-6xl font-mono font-bold text-teal-400">:</span>
-                    <span className="text-5xl md:text-6xl font-mono font-bold text-white tracking-tight">
+                    <span className="text-3xl font-mono font-semibold text-teal-400 mx-0.5">:</span>
+                    <span className="text-3xl font-mono font-semibold text-white tabular-nums">
                       {timeParts.seconds}
                     </span>
                   </div>
-                  <div className="flex items-center gap-8 mt-2">
-                    <span className="text-xs text-slate-500">Saat</span>
-                    <span className="text-xs text-slate-500">Dakika</span>
-                    <span className="text-xs text-slate-500">Saniye</span>
+                  <div className="flex items-center gap-5 mt-1">
+                    <span className="text-[10px] text-slate-500">Saat</span>
+                    <span className="text-[10px] text-slate-500">Dakika</span>
+                    <span className="text-[10px] text-slate-500">Saniye</span>
                   </div>
-                  {!isRunning && (
-                    <span className="text-xs text-slate-600 mt-2">
-                      Duzenlemek icin tikla
-                    </span>
-                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Control Buttons */}
-          <div className="flex items-center gap-4 mt-6">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleReset}
-              disabled={elapsedSeconds === 0 && !isRunning}
-              className="size-12 rounded-full bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-slate-300 transition-all hover:scale-105 disabled:opacity-30"
-            >
-              <RotateCcw className="size-5" />
-            </Button>
-            <Button
-              size="icon"
-              onClick={handlePlayPause}
-              className={cn(
-                "size-14 rounded-full transition-all duration-200 hover:scale-105 shadow-lg",
-                isRunning
-                  ? "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25"
-                  : "bg-teal-500 hover:bg-teal-600 text-white shadow-teal-500/25"
-              )}
-            >
-              {isRunning ? (
-                <Pause className="size-6" />
-              ) : (
-                <Play className="size-6 ml-0.5" />
-              )}
-            </Button>
-          </div>
-
-          {/* Progress Stats */}
-          <div className="flex items-center justify-center gap-8 mt-6 pt-6 border-t border-slate-800 w-full max-w-md">
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-white">
-                {dailyGoalHours}s
-              </span>
-              <span className="text-xs text-slate-500">Gunluk Hedef</span>
-            </div>
-            <div className="h-8 w-px bg-slate-800" />
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-teal-400">
-                {getTimeParts(totalStudiedSeconds).hours}s {getTimeParts(totalStudiedSeconds).minutes}d
-              </span>
-              <span className="text-xs text-slate-500">Tamamlanan</span>
-            </div>
-            <div className="h-8 w-px bg-slate-800" />
-            <div className="flex flex-col items-center">
-              <span
+          {/* Center: Status & Controls */}
+          <div className="flex flex-col items-center gap-4">
+            {/* Status */}
+            <div className="flex items-center gap-2">
+              <div
                 className={cn(
-                  "text-2xl font-bold",
-                  progressPercentage >= 100 ? "text-emerald-400" : "text-white"
+                  "size-2 rounded-full",
+                  isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-600"
+                )}
+              />
+              <span className="text-sm font-medium text-slate-400">
+                {isRunning ? "Calisiyor" : "Durduruldu"}
+              </span>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleReset}
+                disabled={elapsedSeconds === 0 && !isRunning}
+                className="size-10 rounded-full bg-slate-800/50 border-slate-700 hover:bg-slate-700 text-slate-400 disabled:opacity-30"
+              >
+                <RotateCcw className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                onClick={handlePlayPause}
+                className={cn(
+                  "size-12 rounded-full transition-all shadow-lg",
+                  isRunning
+                    ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                    : "bg-teal-500 hover:bg-teal-600 shadow-teal-500/20"
                 )}
               >
+                {isRunning ? (
+                  <Pause className="size-5" />
+                ) : (
+                  <Play className="size-5 ml-0.5" />
+                )}
+              </Button>
+            </div>
+            
+            {!isRunning && !isEditing && (
+              <span className="text-[10px] text-slate-600">Sureyi duzenlemek icin tikla</span>
+            )}
+          </div>
+
+          {/* Right: Stats */}
+          <div className="flex md:flex-col items-center md:items-end gap-4 md:gap-3">
+            <div className="text-center md:text-right">
+              <span className="text-lg font-semibold text-white">{dailyGoalHours}s</span>
+              <p className="text-[10px] text-slate-500">Hedef</p>
+            </div>
+            <div className="text-center md:text-right">
+              <span className="text-lg font-semibold text-teal-400">
+                {getTimeParts(totalStudiedSeconds).hours}s {getTimeParts(totalStudiedSeconds).minutes}d
+              </span>
+              <p className="text-[10px] text-slate-500">Tamamlanan</p>
+            </div>
+            <div className="text-center md:text-right">
+              <span className={cn(
+                "text-lg font-semibold",
+                progressPercentage >= 100 ? "text-emerald-400" : "text-white"
+              )}>
                 %{progressPercentage.toFixed(0)}
               </span>
-              <span className="text-xs text-slate-500">Ilerleme</span>
+              <p className="text-[10px] text-slate-500">Ilerleme</p>
             </div>
           </div>
         </div>
