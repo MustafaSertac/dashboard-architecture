@@ -48,11 +48,11 @@ export function UpcomingTasksCard() {
           <div className="space-y-4">
             {Object.entries(groupedTasks).map(([date, dateTasks]) => (
               <div key={date}>
-                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   {format(parseISO(date), "d MMMM EEEE", { locale: tr })}
                 </p>
                 <div className="space-y-2">
-                  {dateTasks.map((task) => (
+                    {dateTasks.map((task) => (
                     <div
                       key={task.id}
                       className="flex items-center justify-between rounded-lg border bg-card p-3"
