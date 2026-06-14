@@ -11,15 +11,15 @@ export default function AnalyticsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Analizler</h1>
         <p className="text-muted-foreground">
-          Haftalik, aylik ve yillik performans analizlerini incele
+          Haftalık, aylık ve yıllık performans analizlerini incele
         </p>
       </div>
 
       <Tabs defaultValue="weekly" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="weekly">Haftalik Analiz</TabsTrigger>
-          <TabsTrigger value="monthly">Aylik Analiz</TabsTrigger>
-          <TabsTrigger value="yearly">Yillik Analiz</TabsTrigger>
+          <TabsTrigger value="weekly">Haftalık Analiz</TabsTrigger>
+          <TabsTrigger value="monthly">Aylık Analiz</TabsTrigger>
+          <TabsTrigger value="yearly">Yıllık Analiz</TabsTrigger>
         </TabsList>
 
         <TabsContent value="weekly">

@@ -1,0 +1,94 @@
+# Query: gorev
+# ContextLines: 1
+
+23 results - 10 files
+
+app\dashboard\tasks\page.tsx:
+  39          <div>
+  40:           <h1 className="text-2xl font-bold tracking-tight">Görevler</h1>
+  41            <p className="text-muted-foreground">
+  42:             Gunluk, haftalik ve aylik calisma görevlerini takip et
+  43            </p>
+
+  66                  <Plus className="mr-2 size-4" />
+  67:                 Gorev Ekle
+  68                </Button>
+
+app\teacher\page.tsx:
+  71            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+  72:             <CardTitle className="text-sm font-medium">Tamamlanan Görev</CardTitle>
+  73              <CheckCircle2 className="size-4 text-muted-foreground" />
+
+  76              <div className="text-2xl font-bold">{completedTasks}/{totalTasks}</div>
+  77:             <p className="text-xs text-muted-foreground">toplam görev</p>
+  78            </CardContent>
+
+components\dashboard-layout.tsx:
+  37    { name: "Deneme Analiz", href: "/dashboard/exams", icon: FileText },
+  38:   { name: "Görevler", href: "/dashboard/tasks", icon: ListTodo },
+  39    { name: "Analizler", href: "/dashboard/analytics", icon: BarChart3 },
+
+components\tasks\daily-tasks-view.tsx:
+  170                <p className="mt-4 text-muted-foreground">
+  171:                 Bugün icin görev bulunmuyor
+  172                </p>
+
+components\tasks\task-list.tsx:
+   84            <CardContent className="py-12 text-center">
+   85:             <p className="text-muted-foreground">Görev bulunamadi.</p>
+   86            </CardContent>
+
+   96                  <Badge variant={getDateBadge(date)}>
+   97:                   {dateTasks.length} görev
+   98                  </Badge>
+
+  169                                <AlertDialogHeader>
+  170:                                 <AlertDialogTitle>Görevi Sil</AlertDialogTitle>
+  171                                  <AlertDialogDescription>
+  172:                                   Bu görevi silmek istediginize emin misiniz? Bu
+  173                                    işlem geri alınamaz.
+
+components\tasks\task-modal.tsx:
+   87        });
+   88:       toast.success("Görev guncellendi");
+   89      } else {
+
+  106        addTask(newTask);
+  107:       toast.success("Görev eklendi");
+  108      }
+
+  117          <DialogHeader>
+  118:           <DialogTitle>{editingTask ? "Görev Düzenle" : "Yeni Görev"}</DialogTitle>
+  119            <DialogDescription>
+  120              {editingTask
+  121:               ? "Görev bilgilerini guncelleyin."
+  122:               : "Ogrenci icin yeni bir calisma görevi olusturun."}
+  123            </DialogDescription>
+
+components\tasks\weekly-tasks-view.tsx:
+  157                        <p className="text-center text-xs text-muted-foreground py-4">
+  158:                         Gorev yok
+  159                        </p>
+
+components\teacher\student-header.tsx:
+  16      title: "Gunluk Takip",
+  17:     description: "Gunluk gorevler ve ilerleme",
+  18    },
+
+  21      title: "Haftalik Takip",
+  22:     description: "Haftalik gorev takvimi",
+  23    },
+
+components\teacher\student-list.tsx:
+  105              <div>
+  106:               <p className="text-sm text-muted-foreground">Toplam Gorev</p>
+  107                <p className="text-2xl font-bold">
+
+  183                        <p className="text-lg font-semibold">{student.totalTasks}</p>
+  184:                       <p className="text-xs text-muted-foreground">Gorev</p>
+  185                      </div>
+
+components\teacher\teacher-actions.tsx:
+  29            <Plus className="mr-2 size-4" />
+  30:           Gorev Ata
+  31          </Button>

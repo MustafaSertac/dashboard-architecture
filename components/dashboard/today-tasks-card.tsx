@@ -25,7 +25,7 @@ export function TodayTasksCard() {
       belowMinimum && todayTasks.length > 0 && "border-warning/50 bg-warning/5"
     )}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Bugunun Gorevleri</CardTitle>
+        <CardTitle className="text-base font-semibold">Bugünün Görevleri</CardTitle>
         {belowMinimum && todayTasks.length > 0 && (
           <Badge variant="outline" className="border-warning text-warning">
             <AlertCircle className="mr-1 size-3" />
@@ -35,7 +35,7 @@ export function TodayTasksCard() {
       </CardHeader>
       <CardContent>
         {todayTasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Bugun icin gorev yok.</p>
+          <p className="text-sm text-muted-foreground">Bugün için görev yok.</p>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">

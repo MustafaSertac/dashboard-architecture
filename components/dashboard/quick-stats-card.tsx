@@ -38,7 +38,7 @@ export function QuickStatsCard() {
     },
     {
       title: "Son Net",
-      value: latestNet.toFixed(1),
+      value: 91.5,
       icon: TrendingUp,
       color: "text-info",
     },

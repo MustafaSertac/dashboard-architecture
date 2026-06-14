@@ -55,7 +55,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Toplam Cozulen Soru
+              Toplam Çözülen Soru
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -67,7 +67,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Toplam Yanlis
+              Toplam Yanlış Soru
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -75,7 +75,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
               {totalStats.totalMistakes.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Basari orani:{" "}
+              Başarı oranı:{" "}
               {(
                 ((totalStats.totalQuestions - totalStats.totalMistakes) /
                   totalStats.totalQuestions) *
@@ -91,7 +91,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">
-            Konu Bazli Yillik Analiz
+            Konu Bazlı Yıllık Analiz
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -132,7 +132,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
                         variant="outline"
                         className="border-destructive/50 text-destructive"
                       >
-                        {courseTotalMistakes} yanlis
+                        {courseTotalMistakes} yanlış
                       </Badge>
                     </div>
                   </CollapsibleTrigger>
@@ -170,7 +170,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
                                 variant="outline"
                                 className="text-xs border-destructive/50 text-destructive"
                               >
-                                {branch.totalMistakes} yanlis
+                                {branch.totalMistakes} yanlış
                               </Badge>
                             </div>
                           </CollapsibleTrigger>
@@ -190,7 +190,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
                                     {topic.questions} soru
                                   </span>
                                   <span className="text-xs text-destructive">
-                                    {topic.mistakes} yanlis
+                                    {topic.mistakes} yanlış
                                   </span>
                                   <Badge
                                     variant={

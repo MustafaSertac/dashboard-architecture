@@ -37,9 +37,9 @@ export default function TasksPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Gorevler</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Görevler</h1>
           <p className="text-muted-foreground">
-            Gunluk, haftalik ve aylik calisma gorevlerini takip et
+            Günlük, haftalık ve aylık çalışma görevlerini takip et
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -47,7 +47,7 @@ export default function TasksPage() {
             <>
               <div className="flex items-center gap-2">
                 <Label htmlFor="student-select" className="text-sm whitespace-nowrap">
-                  Ogrenci:
+                  Öğrenci:
                 </Label>
                 <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
                   <SelectTrigger id="student-select" className="w-[160px]">
@@ -64,7 +64,7 @@ export default function TasksPage() {
               </div>
               <Button onClick={() => setModalOpen(true)}>
                 <Plus className="mr-2 size-4" />
-                Gorev Ekle
+                Görev Ekle
               </Button>
             </>
           )}
@@ -75,15 +75,15 @@ export default function TasksPage() {
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="daily" className="gap-2">
             <Calendar className="size-4" />
-            <span className="hidden sm:inline">Gunluk</span>
+            <span className="hidden sm:inline">Günlük</span>
           </TabsTrigger>
           <TabsTrigger value="weekly" className="gap-2">
             <CalendarDays className="size-4" />
-            <span className="hidden sm:inline">Haftalik</span>
+            <span className="hidden sm:inline">Haftalık</span>
           </TabsTrigger>
           <TabsTrigger value="monthly" className="gap-2">
             <CalendarRange className="size-4" />
-            <span className="hidden sm:inline">Aylik</span>
+            <span className="hidden sm:inline">Aylık</span>
           </TabsTrigger>
         </TabsList>
 

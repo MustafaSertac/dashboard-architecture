@@ -47,7 +47,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
     })
     .sort((a, b) => {
       // Sort by date, then by status
-      const dateCompare = a.date.localeCompare(b.date);
+      const dateCompare = a.dueDate.localeCompare(b.dueDate);
       if (dateCompare !== 0) return dateCompare;
       if (a.status === "completed" && b.status !== "completed") return 1;
       if (a.status !== "completed" && b.status === "completed") return -1;
@@ -56,10 +56,10 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
 
   // Group tasks by date
   const groupedTasks = filteredTasks.reduce((acc, task) => {
-    if (!acc[task.date]) {
-      acc[task.date] = [];
+    if (!acc[task.dueDate]) {
+      acc[task.dueDate] = [];
     }
-    acc[task.date].push(task);
+    acc[task.dueDate].push(task);
     return acc;
   }, {} as Record<string, Task[]>);
 
@@ -82,7 +82,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
       {Object.keys(groupedTasks).length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Gorev bulunamadi.</p>
+            <p className="text-muted-foreground">Görev bulunamadi.</p>
           </CardContent>
         </Card>
       ) : (
@@ -94,7 +94,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
                   {getDateLabel(date)}
                 </CardTitle>
                 <Badge variant={getDateBadge(date)}>
-                  {dateTasks.length} gorev
+                  {dateTasks.length} görev
                 </Badge>
               </div>
             </CardHeader>
@@ -102,7 +102,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
               {dateTasks.map((task) => {
                 const progress =
                   task.questionCount > 0
-                    ? (task.solvedCount / task.questionCount) * 100
+                    ? (task.completedQuestions / task.questionCount) * 100
                     : 0;
 
                 return (
@@ -128,13 +128,13 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
                         </div>
                         <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                           <span>
-                            {task.solvedCount}/{task.questionCount} soru
+                            {task.completedQuestions}/{task.questionCount} soru
                           </span>
                           {task.status === "completed" && (
                             <>
-                              <span>D: {task.correctCount}</span>
-                              <span>Y: {task.wrongCount}</span>
-                              <span>{task.hoursSpent}s</span>
+                              <span>D: {task.correctAnswers}</span>
+                              <span>Y: {task.wrongAnswers}</span>
+                              <span>{task.hoursStudied}s</span>
                             </>
                           )}
                         </div>

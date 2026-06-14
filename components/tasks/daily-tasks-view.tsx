@@ -109,7 +109,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
             </span>
             {!isSameDay(selectedDate, new Date()) && (
               <Button variant="link" size="sm" onClick={handleToday} className="h-auto p-0">
-                Bugune Don
+                Bugüne Dön
               </Button>
             )}
           </div>
@@ -134,7 +134,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <BookOpen className="size-4" />
-              <span className="text-xs">Cozulen</span>
+              <span className="text-xs">Çözülen</span>
             </div>
             <p className="mt-1 text-2xl font-bold">{totalCompleted}</p>
           </CardContent>
@@ -168,7 +168,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
             <CardContent className="flex flex-col items-center justify-center p-8 text-center">
               <BookOpen className="size-12 text-muted-foreground/50" />
               <p className="mt-4 text-muted-foreground">
-                Bu gun icin gorev bulunmuyor
+                Bugün için görev bulunmuyor
               </p>
             </CardContent>
           </Card>
@@ -203,7 +203,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                       <div className="flex flex-wrap items-end gap-3">
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">
-                            Cozulen Soru
+                            Çözülen Soru
                           </label>
                           <Input
                             type="number"
@@ -220,7 +220,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                         </div>
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">
-                            Calisma Saati
+                            Çalışma Saati
                           </label>
                           <Input
                             type="number"
@@ -260,7 +260,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                         </div>
                         <div className="flex items-center gap-1.5 text-sm">
                           <BookOpen className="size-4 text-muted-foreground" />
-                          <span>Cozulen: {task.completedQuestions}</span>
+                          <span>Çözülen: {task.completedQuestions}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-sm">
                           <Clock className="size-4 text-muted-foreground" />
@@ -271,7 +271,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                           size="sm"
                           onClick={() => handleStartEdit(task)}
                         >
-                          Guncelle
+                          Güncelle
                         </Button>
                         {isTeacher && (
                           <Button

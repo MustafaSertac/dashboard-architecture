@@ -46,19 +46,18 @@ export function ExamNetTrendCard() {
     const max = Math.max(...nets);
     const padding = Math.max((max - min) * 0.15, 5);
 
-    return [
-      Math.max(0, Math.floor(min - padding)),
-      Math.ceil(max + padding),
-    ];
+    return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
   }, [chartData]);
 
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-base font-semibold">Deneme Net Grafigi</CardTitle>
+          <CardTitle className="text-base font-semibold">
+            Deneme Net Grafiği
+          </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {currentUser.name.split(" ")[0]} — {examType} net trendi
+            {currentUser.name.split(" ")[0]} — {examType} net grafiği
           </p>
         </div>
         <Tabs
@@ -79,7 +78,7 @@ export function ExamNetTrendCard() {
       <CardContent>
         {chartData.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            {examType} icin henuz deneme sonucu yok.
+            {examType} için henüz deneme sonucu yok.
           </p>
         ) : (
           <div className="h-[260px] w-full">
@@ -116,7 +115,10 @@ export function ExamNetTrendCard() {
                     color: "var(--foreground)",
                   }}
                   labelStyle={{ color: "var(--muted-foreground)" }}
-                  formatter={(value: number) => [`${value.toFixed(1)} net`, "Net"]}
+                  formatter={(value: number) => [
+                    `${value.toFixed(1)} net`,
+                    "Net",
+                  ]}
                   labelFormatter={(_, payload) =>
                     payload?.[0]?.payload?.examName ?? ""
                   }

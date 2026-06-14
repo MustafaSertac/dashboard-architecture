@@ -155,7 +155,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
                   <div className="flex min-h-[250px] flex-col gap-2">
                     {day.tasks.length === 0 ? (
                       <p className="text-center text-xs text-muted-foreground py-4">
-                        Gorev yok
+                        Görev yok
                       </p>
                     ) : (
                       day.tasks.map((task) => (

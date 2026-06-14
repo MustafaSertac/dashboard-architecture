@@ -158,7 +158,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Cozulen</p>
+            <p className="text-xs text-muted-foreground">Çözülen</p>
             <p className="text-xl font-bold">{monthlyStats.completedQuestions}</p>
           </CardContent>
         </Card>
@@ -170,7 +170,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Dogru</p>
+            <p className="text-xs text-muted-foreground">Doğru</p>
             <p className="text-xl font-bold">{monthlyStats.correctAnswers}</p>
           </CardContent>
         </Card>
@@ -225,7 +225,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
                                 {day.completedQuestions}/{day.totalQuestions} soru
                               </div>
                               <div>{day.totalHours.toFixed(1)} saat</div>
-                              <div>{day.correctAnswers} dogru</div>
+                              <div>{day.correctAnswers} doğru</div>
                             </div>
                           )}
                         </div>
@@ -243,15 +243,15 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="size-3 rounded bg-success/30 border border-success/50" />
-          <span>Hedef Tamamlandi (%80+)</span>
+          <span>Hedef Tamamlandı (%80+)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="size-3 rounded bg-warning/30 border border-warning/50" />
-          <span>Kismi Tamamlandi (%50-80)</span>
+          <span>Kısmi Tamamlandı (%50-80)</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="size-3 rounded bg-destructive/30 border border-destructive/50" />
-          <span>Yetersiz (%50 alti)</span>
+          <span>Yetersiz (%50 altı)</span>
         </div>
       </div>
     </div>

@@ -16,10 +16,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Hosgeldin, {currentUser.name.split(" ")[0]}
+          Hoşgeldin, {currentUser.name.split(" ")[0]}
         </h1>
         <p className="text-muted-foreground">
-          Bugunun ozeti ve yaklasan gorevlerin
+          Bugünün özeti ve yaklaşan görevleri
         </p>
       </div>
 

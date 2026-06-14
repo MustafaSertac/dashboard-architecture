@@ -85,7 +85,7 @@ export function TaskModal({
         questionCount: parseInt(questionCount),
         studentId,
       });
-      toast.success("Gorev guncellendi");
+      toast.success("Görev guncellendi");
     } else {
       const newTask: Task = {
         id: Date.now().toString(),
@@ -104,7 +104,7 @@ export function TaskModal({
         updatedAt: new Date().toISOString(),
       };
       addTask(newTask);
-      toast.success("Gorev eklendi");
+      toast.success("Görev eklendi");
     }
 
     onOpenChange(false);
@@ -115,20 +115,20 @@ export function TaskModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{editingTask ? "Gorev Duzenle" : "Yeni Gorev"}</DialogTitle>
+          <DialogTitle>{editingTask ? "Görev Düzenle" : "Yeni Görev"}</DialogTitle>
           <DialogDescription>
             {editingTask
-              ? "Gorev bilgilerini guncelleyin."
-              : "Ogrenci icin yeni bir calisma gorevi olusturun."}
+              ? "Görev bilgilerini güncelleyin."
+              : "Öğrenci için yeni bir çalışma görevi oluşturun."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="student">Ogrenci</Label>
+            <Label htmlFor="student">Öğrenci</Label>
             <Select value={studentId} onValueChange={setStudentId}>
               <SelectTrigger id="student">
-                <SelectValue placeholder="Ogrenci sec" />
+                <SelectValue placeholder="Öğrenci seç" />
               </SelectTrigger>
               <SelectContent>
                 {students.map((student) => (
@@ -160,7 +160,7 @@ export function TaskModal({
               }}
             >
               <SelectTrigger id="subject">
-                <SelectValue placeholder="Ders sec" />
+                <SelectValue placeholder="Ders seç" />
               </SelectTrigger>
               <SelectContent>
                 {TYT_SUBJECTS.map((s) => (
@@ -180,7 +180,7 @@ export function TaskModal({
               disabled={!subject}
             >
               <SelectTrigger id="topic">
-                <SelectValue placeholder={subject ? "Konu sec" : "Once ders secin"} />
+                <SelectValue placeholder={subject ? "Konu seç" : "Önce ders seçin"} />
               </SelectTrigger>
               <SelectContent>
                 {availableTopics.map((t) => (
@@ -193,7 +193,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label htmlFor="questionCount">Soru Sayisi</Label>
+            <Label htmlFor="questionCount">Soru Sayısı</Label>
             <Input
               id="questionCount"
               type="number"

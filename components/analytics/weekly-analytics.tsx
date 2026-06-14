@@ -286,7 +286,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
       {/* Weekly Analysis Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Haftalik Ders Analizi</CardTitle>ss
+          <CardTitle>Haftalık Ders Analizi</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -322,7 +322,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                 {allSubjects.length === 0 ? (
                   <tr>
                     <td colSpan={tableColSpan} className="p-8 text-center text-muted-foreground">
-                      Bu hafta icin veri bulunmuyor
+                      Bu hafta için veri bulunmuyor
                     </td>
                   </tr>
                 ) : (
@@ -441,7 +441,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
       {/* Subject Progress */}
       <Card>
         <CardHeader>
-          <CardTitle>Haftalar Arasi Karsilastirma</CardTitle>
+          <CardTitle>Haftalar Arasında Karşılaştırma</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -450,10 +450,10 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                 <tr className="border-b bg-muted/50">
                   <th className="p-3 text-left font-medium">Hafta</th>
                   <th className="p-3 text-center font-medium">Toplam Hedef Soru</th>
-                  <th className="p-3 text-center font-medium">Cozulen Soru</th>
-                  <th className="p-3 text-center font-medium">Dogru</th>
-                  <th className="p-3 text-center font-medium">Calisma Saat</th>
-                  <th className="p-3 text-center font-medium">Basari %</th>
+                  <th className="p-3 text-center font-medium">Çözülen Soru</th>
+                  <th className="p-3 text-center font-medium">Doğru</th>
+                  <th className="p-3 text-center font-medium">Çalışma Saati</th>
+                  <th className="p-3 text-center font-medium">Başarı %</th>
                 </tr>
               </thead>
               <tbody>

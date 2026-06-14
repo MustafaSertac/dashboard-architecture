@@ -24,10 +24,10 @@ export function TeacherActions({ studentId, viewType }: TeacherActionsProps) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
-        <span className="text-sm font-medium text-muted-foreground">Ogretmen Islemleri:</span>
+        <span className="text-sm font-medium text-muted-foreground">Öğretmen İşlemleri:</span>
         <Button size="sm" onClick={() => setTaskModalOpen(true)}>
           <Plus className="mr-2 size-4" />
-          Gorev Ata
+          Görev Ata
         </Button>
         <Button size="sm" variant="outline" onClick={() => setNoteModalOpen(true)}>
           <MessageSquarePlus className="mr-2 size-4" />

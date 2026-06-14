@@ -45,7 +45,7 @@ export function WeeklyProgressCard() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Haftalik Ilerleme</CardTitle>
+        <CardTitle className="text-base font-semibold">Haftalık İlerleme</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[200px]">
@@ -73,13 +73,13 @@ export function WeeklyProgressCard() {
                 dataKey="soru" 
                 fill="hsl(var(--chart-1))" 
                 radius={[4, 4, 0, 0]}
-                name="Cozulen"
+                name="Çözülen"
               />
               <Bar 
                 dataKey="dogru" 
                 fill="hsl(var(--chart-2))" 
                 radius={[4, 4, 0, 0]}
-                name="Dogru"
+                name="Doğru"
               />
             </BarChart>
           </ResponsiveContainer>

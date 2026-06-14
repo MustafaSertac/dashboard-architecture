@@ -17,12 +17,12 @@ export default function ExamsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Deneme Analiz</h1>
           <p className="text-muted-foreground">
-            Deneme sonuclarini takip et ve analizlerini gor
+            Deneme sonuçlarını takip et ve analizlerini gör
           </p>
         </div>
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="mr-2 size-4" />
-          Sonuc Ekle
+          Sonuç Ekle
         </Button>
       </div>
 

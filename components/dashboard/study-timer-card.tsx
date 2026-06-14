@@ -262,7 +262,7 @@ export function StudyTimerCard({
     >
       {/* Glow */}
       <div
-        className="absolute inset-0 opacity-80"d
+        className="absolute inset-0 opacity-80"
         style={{
           background:
             "var(--timer-glow)",
@@ -287,7 +287,7 @@ export function StudyTimerCard({
               />
 
               <h2 className="text-xl font-semibold text-foreground">
-                Çalışma Zamanlayıcısı
+              Süreölçer
               </h2>
             </div>
 

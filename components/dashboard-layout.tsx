@@ -33,9 +33,9 @@ import {
 import { UserRole } from "@/lib/types";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Ana Sayfa", href: "/dashboard", icon: LayoutDashboard },
   { name: "Deneme Analiz", href: "/dashboard/exams", icon: FileText },
-  { name: "Gorevler", href: "/dashboard/tasks", icon: ListTodo },
+  { name: "Görevler", href: "/dashboard/tasks", icon: ListTodo },
   { name: "Analizler", href: "/dashboard/analytics", icon: BarChart3 },
 ];
 

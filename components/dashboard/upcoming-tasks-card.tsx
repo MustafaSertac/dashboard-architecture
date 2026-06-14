@@ -39,11 +39,11 @@ export function UpcomingTasksCard() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Eksik Gorevler</CardTitle>
+        <CardTitle className="text-base font-semibold">Eksik Görevler</CardTitle>
       </CardHeader>
       <CardContent>
         {upcomingTasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Tamamlanmayan gorev yok.</p>
+          <p className="text-sm text-muted-foreground">Tamamlanmayan görev yok.</p>
         ) : (
           <div className="space-y-4">
             {Object.entries(groupedTasks).map(([date, dateTasks]) => (

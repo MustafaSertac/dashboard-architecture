@@ -13,18 +13,18 @@ interface StudentHeaderProps {
 const viewConfig = {
   daily: {
     icon: Calendar,
-    title: "Gunluk Takip",
-    description: "Gunluk gorevler ve ilerleme",
+    title: "Günlük Takip",
+    description: "Günlük görevler ve ilerleme",
   },
   weekly: {
     icon: CalendarDays,
-    title: "Haftalik Takip",
-    description: "Haftalik gorev takvimi",
+    title: "Haftalık Takip",
+    description: "Haftalık görev takvimi",
   },
   monthly: {
     icon: CalendarRange,
-    title: "Aylik Takip",
-    description: "Aylik performans ozeti",
+    title: "Aylık Takip",
+    description: "Aylık performans özeti",
   },
   analytics: {
     icon: BarChart3,
@@ -33,8 +33,8 @@ const viewConfig = {
   },
   exams: {
     icon: FileText,
-    title: "Deneme Sonuclari",
-    description: "Deneme sinavi analizleri",
+    title: "Deneme Sonuçları",
+    description: "Deneme sınavı sonuç analizleri",
   },
 };
 
@@ -59,7 +59,7 @@ export function StudentHeader({ student, viewType }: StudentHeaderProps) {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{student.name}</h1>
             <Badge variant="outline" className="text-xs">
-              Ogrenci
+              Öğrenci
             </Badge>
           </div>
           <p className="text-muted-foreground">{student.email}</p>
