@@ -1,0 +1,32 @@
+# Query: Cozulen
+# ContextLines: 1
+
+6 results - 4 files
+
+components\analytics\weekly-analytics.tsx:
+  452                    <th className="p-3 text-center font-medium">Toplam Hedef Soru</th>
+  453:                   <th className="p-3 text-center font-medium">Çözülen Soru</th>
+  454                    <th className="p-3 text-center font-medium">Dogru</th>
+
+components\analytics\yearly-analytics.tsx:
+  57              <CardTitle className="text-sm font-medium text-muted-foreground">
+  58:               Toplam Cozulen Soru
+  59              </CardTitle>
+
+components\tasks\daily-tasks-view.tsx:
+  136                <BookOpen className="size-4" />
+  137:               <span className="text-xs">Cozulen</span>
+  138              </div>
+
+  205                            <label className="text-xs text-muted-foreground">
+  206:                             Cozulen Soru
+  207                            </label>
+
+  262                            <BookOpen className="size-4 text-muted-foreground" />
+  263:                           <span>Cozulen: {task.completedQuestions}</span>
+  264                          </div>
+
+components\tasks\monthly-tasks-view.tsx:
+  160            <CardContent className="p-4 text-center">
+  161:             <p className="text-xs text-muted-foreground">Cozulen</p>
+  162              <p className="text-xl font-bold">{monthlyStats.completedQuestions}</p>

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "./types";
+import { MOCK_USERS } from "./mock-users";
 
 interface AuthUser extends User {
   password?: string;
@@ -21,16 +22,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = "edu_dashboard_users";
 const AUTH_KEY = "edu_dashboard_auth";
 
-const defaultUsers: AuthUser[] = [
-  { id: "1", name: "Admin User", email: "admin@edu.com", role: "admin", password: "admin123" },
-  { id: "2", name: "Ahmet Hoca", email: "ahmet@edu.com", role: "teacher", password: "teacher123" },
-  { id: "3", name: "Elif Ogrenci", email: "elif@edu.com", role: "student", password: "student123" },
-  { id: "4", name: "Mehmet Ogrenci", email: "mehmet@edu.com", role: "student", password: "student123" },
-  { id: "5", name: "Zeynep Ogrenci", email: "zeynep@edu.com", role: "student", password: "student123" },
-  { id: "6", name: "Burak Yilmaz", email: "burak@edu.com", role: "student", password: "student123" },
-  { id: "7", name: "Selin Kaya", email: "selin@edu.com", role: "student", password: "student123" },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize users in localStorage if not exists
     const storedUsers = localStorage.getItem(STORAGE_KEY);
     if (!storedUsers) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_USERS));
     }
 
     // Check for existing session
@@ -53,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const storedUsers = localStorage.getItem(STORAGE_KEY);
-    const users: AuthUser[] = storedUsers ? JSON.parse(storedUsers) : defaultUsers;
+    const users: AuthUser[] = storedUsers ? JSON.parse(storedUsers) : MOCK_USERS;
 
     const foundUser = users.find((u) => u.email === email && u.password === password);
 
@@ -74,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: UserRole
   ): Promise<{ success: boolean; error?: string }> => {
     const storedUsers = localStorage.getItem(STORAGE_KEY);
-    const users: AuthUser[] = storedUsers ? JSON.parse(storedUsers) : defaultUsers;
+    const users: AuthUser[] = storedUsers ? JSON.parse(storedUsers) : MOCK_USERS;
 
     // Check if email already exists
     if (users.some((u) => u.email === email)) {
