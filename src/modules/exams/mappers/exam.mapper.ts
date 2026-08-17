@@ -36,8 +36,10 @@ export function mapExamDtoToUi(dto: ExamDTO | ExamSummaryDTO): ExamResult {
           (tr) => ({
             topicName: tr.name,
             subtopicName: undefined,
-            questionNumbers: [],
-            correct: 0,
+            // BACKEND EKSIK #3 (Yuksek): correct ve questionNumbers DTO'da yok.
+            // Backend tamamlanana kadar 0 / [] fallback kullanir.
+            questionNumbers: tr.questionNumbers ?? [],
+            correct: tr.correct ?? 0,
             wrong: tr.wrong,
             empty: tr.blank,
           })
@@ -119,12 +121,16 @@ export function mapUiExamFormToCreateRequest(params: {
       wrong: sr.wrong,
       blank: sr.empty,
       topicResults: (sr.topicDetails ?? [])
-        .filter((td) => td.wrong > 0 || td.empty > 0)
+        .filter((td) => td.wrong > 0 || td.empty > 0 || td.correct > 0)
         .map((td) => ({
           topicCode: 0,
           name: td.topicName,
+          // BACKEND EKSIK #3: correct ve questionNumbers gonderiyoruz;
+          // backend tanimiyorsa yok sayilir (forward-compatible).
+          correct: td.correct,
           wrong: td.wrong,
           blank: td.empty,
+          questionNumbers: td.questionNumbers,
         })),
     };
 

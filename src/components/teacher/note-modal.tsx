@@ -20,6 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+import { useCreateNote } from "@/modules/notes/hooks/useNotes";
+import type { NoteCategory } from "@/modules/notes/types/note.types";
 
 interface NoteModalProps {
   open: boolean;
@@ -27,7 +30,7 @@ interface NoteModalProps {
   studentId: string;
 }
 
-const noteCategories = [
+const noteCategories: { value: NoteCategory; label: string }[] = [
   { value: "feedback", label: "Genel Geri Bildirim" },
   { value: "performance", label: "Performans Notu" },
   { value: "improvement", label: "Gelisim Onerisi" },
@@ -35,26 +38,33 @@ const noteCategories = [
 ];
 
 export function NoteModal({ open, onOpenChange, studentId }: NoteModalProps) {
-  const [category, setCategory] = useState("feedback");
-  const [note, setNote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const createNote = useCreateNote(studentId, user?.id ?? "");
 
-  const handleSubmit = async () => {
+  const [category, setCategory] = useState<NoteCategory>("feedback");
+  const [note, setNote] = useState("");
+
+  const handleSubmit = () => {
     if (!note.trim()) {
       toast.error("Lutfen bir not girin");
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    toast.success("Not basariyla eklendi");
-    setNote("");
-    setCategory("feedback");
-    setIsSubmitting(false);
-    onOpenChange(false);
+    createNote.mutate(
+      { category, note },
+      {
+        onSuccess: () => {
+          toast.success("Not basariyla eklendi");
+          setNote("");
+          setCategory("feedback");
+          onOpenChange(false);
+        },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Not eklenemedi";
+          toast.error(msg);
+        },
+      }
+    );
   };
 
   return (
@@ -69,7 +79,7 @@ export function NoteModal({ open, onOpenChange, studentId }: NoteModalProps) {
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="category">Kategori</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(v) => setCategory(v as NoteCategory)}>
               <SelectTrigger id="category">
                 <SelectValue placeholder="Kategori sec" />
               </SelectTrigger>
@@ -97,8 +107,8 @@ export function NoteModal({ open, onOpenChange, studentId }: NoteModalProps) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Iptal
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
+          <Button onClick={handleSubmit} disabled={createNote.isPending}>
+            {createNote.isPending ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </DialogFooter>
       </DialogContent>

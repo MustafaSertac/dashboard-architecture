@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
 import { TodayTasksCard } from "@/components/dashboard/today-tasks-card";
 import { UpcomingTasksCard } from "@/components/dashboard/upcoming-tasks-card";
 import { QuickStatsCard } from "@/components/dashboard/quick-stats-card";
@@ -10,13 +10,13 @@ import { StudyTimerCard } from "@/components/dashboard/study-timer-card";
 import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
 
 export default function DashboardPage() {
-  const { currentUser } = useApp();
+  const { user } = useAuth();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Hoşgeldin, {currentUser.name.split(" ")[0]}
+          Hoşgeldin, {user?.name?.split(" ")[0] ?? "Kullanici"}
         </h1>
         <p className="text-muted-foreground">
           Bugünün özeti ve yaklaşan görevleri

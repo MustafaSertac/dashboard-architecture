@@ -1,6 +1,6 @@
 # Backend API Eksikleri ve Talepleri
 
-> **Durum:** Frontend entegrasyonu `app/FRONTEND_INTEGRATION.md` dokümantasyonuna göre yapıldı.
+> **Durum:** Frontend entegrasyonu `docs/FRONTEND_INTEGRATION.md` dokümantasyonuna göre yapıldı.
 > Bu dosya, mevcut backend API'de eksik olan ve frontend'in düzgün çalışması için backend ekibinin eklemesi gereken endpoint ve DTO alanlarını listeler.
 >
 > **Tarih:** 09.08.2026

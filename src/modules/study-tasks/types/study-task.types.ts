@@ -19,6 +19,16 @@ export interface StudyTaskDTO {
   successRate: number;
   isCompleted: boolean;
   isTargetAchieved: boolean;
+  // BACKEND EKSIK #1 (Kritik): dueDate alani StudyTaskDTO'da YOK.
+  // Backend BackendTalep.md talep #1 ve #4'te listelendi.
+  // Frontend dueDate'i varmis gibi implement etti; backend ekleyene kadar
+  // service/hook katmaninda context-date fallback kullaniliyor.
+  dueDate?: string;
+  // BACKEND EKSIK #4 (Yuksek): teacherId/studentId/createdAt/updatedAt alanlari YOK.
+  teacherId?: string;
+  studentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateTaskRequest {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
 import { TaskModal } from "@/components/tasks/task-modal";
 import { DailyTasksView } from "@/components/tasks/daily-tasks-view";
 import { WeeklyTasksView } from "@/components/tasks/weekly-tasks-view";
@@ -16,17 +16,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
 import { Plus, Calendar, CalendarDays, CalendarRange } from "lucide-react";
 
 export default function TasksPage() {
-  const { currentUser, students } = useApp();
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher" || user?.role === "admin";
+
+  // BACKEND EKSIK #2: Ogretmen-ogrenci liste endpoint'i YOK. Hook mock fallback doner.
+  const { data: teacherStudents } = useTeacherStudents(
+    isTeacher ? user?.id : undefined
+  );
+
+  const students = isTeacher
+    ? (teacherStudents ?? []).map((s) => ({ id: s.id, name: s.name }))
+    : user
+      ? [{ id: user.id, name: user.name }]
+      : [];
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
-    currentUser.role === "student" ? currentUser.id : students[0]?.id || ""
+    user?.role === "student" ? (user.id ?? "") : (students[0]?.id ?? "")
   );
-
-  const isTeacher = currentUser.role === "teacher" || currentUser.role === "admin";
 
   const handleCloseModal = () => {
     setModalOpen(false);
@@ -49,7 +61,10 @@ export default function TasksPage() {
                 <Label htmlFor="student-select" className="text-sm whitespace-nowrap">
                   Öğrenci:
                 </Label>
-                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                <Select
+                  value={selectedStudentId}
+                  onValueChange={setSelectedStudentId}
+                >
                   <SelectTrigger id="student-select" className="w-[160px]">
                     <SelectValue placeholder="Ogrenci sec" />
                   </SelectTrigger>
@@ -62,7 +77,13 @@ export default function TasksPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={() => setModalOpen(true)}>
+              <Button
+                onClick={() => {
+                  setEditingTaskId(null);
+                  setModalOpen(true);
+                }}
+                disabled={!selectedStudentId}
+              >
                 <Plus className="mr-2 size-4" />
                 Görev Ekle
               </Button>
@@ -104,7 +125,7 @@ export default function TasksPage() {
         open={modalOpen}
         onOpenChange={handleCloseModal}
         editingTaskId={editingTaskId}
-        selectedStudentId={selectedStudentId}
+          selectedStudentId={selectedStudentId}
       />
     </div>
   );

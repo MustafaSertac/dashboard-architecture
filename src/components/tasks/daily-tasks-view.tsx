@@ -1,33 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { format, addDays, subDays, startOfDay, isSameDay } from "date-fns";
+import { format, addDays, subDays, isToday } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useApp } from "@/lib/context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTasksByRange, useCompleteTask, useLogStudy } from "@/modules/study-tasks/hooks/useStudyTasks";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  BookOpen,
-  Target,
-  Check,
-} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronLeft, ChevronRight, Clock, BookOpen, Target, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface DailyTask {
-  id: string;
-  subject: string;
-  topic: string;
-  targetQuestions: number;
-  completedQuestions: number;
-  hoursStudied: number;
-  isCompleted: boolean;
-}
 
 interface DailyTasksViewProps {
   studentId: string;
@@ -36,7 +20,6 @@ interface DailyTasksViewProps {
 
 export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewProps) {
   const isTeacher = role === "teacher";
-  const { tasks, updateTask } = useApp();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [tempValues, setTempValues] = useState<{
@@ -44,13 +27,16 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
     hoursStudied: number;
   }>({ completedQuestions: 0, hoursStudied: 0 });
 
-  const studentTasks = tasks.filter(
-    (task) =>
-      task.studentId === studentId &&
-      isSameDay(new Date(task.dueDate), selectedDate)
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+    studentId,
+    dateStr,
+    dateStr
   );
 
-  const dailyTasks: DailyTask[] = studentTasks.map((task) => ({
+  const completeTask = useCompleteTask(studentId);
+  const logStudy = useLogStudy(studentId);
+  const dailyTasks = (tasks ?? []).map((task) => ({
     id: task.id,
     subject: task.subject,
     topic: task.topic,
@@ -58,13 +44,15 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
     completedQuestions: task.completedQuestions || 0,
     hoursStudied: task.hoursStudied || 0,
     isCompleted: task.status === "completed",
+    correctAnswers: task.correctAnswers,
+    wrongAnswers: task.wrongAnswers,
   }));
 
   const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1));
   const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
   const handleToday = () => setSelectedDate(new Date());
 
-  const handleStartEdit = (task: DailyTask) => {
+  const handleStartEdit = (task: typeof dailyTasks[number]) => {
     setEditingTaskId(task.id);
     setTempValues({
       completedQuestions: task.completedQuestions,
@@ -72,22 +60,22 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
     });
   };
 
-  const handleSaveEdit = (taskId: string, targetQuestions: number) => {
-    const isCompleted = tempValues.completedQuestions >= targetQuestions;
-    updateTask(taskId, {
-      completedQuestions: tempValues.completedQuestions,
-      hoursStudied: tempValues.hoursStudied,
-      status: isCompleted ? "completed" : "pending",
+  const handleSaveEdit = (taskId: string) => {
+    // Inline edit: kullanici cozulen soru sayisi + calisma saati girer.
+    // Backend logStudy endpoint'i hours + dogru/yanlis/bos bekler ve
+    // isCompleted hedefi kendisi hesaplar.
+    logStudy.mutate({
+      taskId,
+      hours: tempValues.hoursStudied,
+      correctCount: tempValues.completedQuestions,
+      wrongCount: 0,
+      emptyCount: 0,
     });
     setEditingTaskId(null);
   };
 
-  const handleToggleComplete = (task: DailyTask) => {
-    const newStatus = task.isCompleted ? "pending" : "completed";
-    updateTask(task.id, {
-      status: newStatus,
-      completedQuestions: newStatus === "completed" ? task.targetQuestions : task.completedQuestions,
-    });
+  const handleToggleComplete = (task: typeof dailyTasks[number]) => {
+    completeTask.mutate({ taskId: task.id });
   };
 
   const totalTarget = dailyTasks.reduce((sum, t) => sum + t.targetQuestions, 0);
@@ -107,7 +95,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
             <span className="text-lg font-semibold">
               {format(selectedDate, "d MMMM yyyy, EEEE", { locale: tr })}
             </span>
-            {!isSameDay(selectedDate, new Date()) && (
+            {!isToday(selectedDate) && (
               <Button variant="link" size="sm" onClick={handleToday} className="h-auto p-0">
                 Bugüne Dön
               </Button>
@@ -163,11 +151,28 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
 
       {/* Task List */}
       <div className="space-y-3">
-        {dailyTasks.length === 0 ? (
+        {isLoading ? (
+          <>
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </>
+        ) : isError ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-sm text-destructive mb-2">Görevler yuklenemedi</p>
+              <button
+                onClick={() => refetch()}
+                className="text-sm text-primary hover:underline"
+              >
+                Tekrar dene
+              </button>
+            </CardContent>
+          </Card>
+        ) : dailyTasks.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center p-8 text-center">
               <BookOpen className="size-12 text-muted-foreground/50" />
-              <p className="mt-4 text-muted-foreground">
+              <p className="text-muted-foreground mt-4">
                 Bugün için görev bulunmuyor
               </p>
             </CardContent>
@@ -187,6 +192,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                     checked={task.isCompleted}
                     onCheckedChange={() => handleToggleComplete(task)}
                     className="mt-1"
+                    disabled={completeTask.isPending}
                   />
                   <div className="flex-1 space-y-3">
                     <div className="flex items-start justify-between">
@@ -239,7 +245,8 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => handleSaveEdit(task.id, task.targetQuestions)}
+                            onClick={() => handleSaveEdit(task.id)}
+                            disabled={logStudy.isPending}
                           >
                             Kaydet
                           </Button>
@@ -279,6 +286,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                             size="sm"
                             className="text-success border-success/50 hover:bg-success/10"
                             onClick={() => handleToggleComplete(task)}
+                            disabled={completeTask.isPending}
                           >
                             {task.isCompleted ? "Iptal Et" : "Onayla"}
                           </Button>

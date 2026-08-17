@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useExamTrends } from "@/modules/exams/hooks/useExams";
+import { examTypeToExamCode } from "@/types/common";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   CartesianGrid,
   Line,
@@ -24,19 +27,25 @@ type ChartPoint = {
 };
 
 export function ExamNetTrendCard() {
-  const { examResults, currentUser } = useApp();
+  const { user } = useAuth();
   const [examType, setExamType] = useState<ExamType>("TYT");
+  const examCode = examTypeToExamCode(examType);
+
+  const { data: exams, isLoading, isError, refetch } = useExamTrends(
+    user?.id ?? "",
+    examCode
+  );
 
   const chartData = useMemo((): ChartPoint[] => {
-    return examResults
-      .filter((e) => e.studentId === currentUser.id && e.examType === examType)
+    return (exams ?? [])
+      .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((exam) => ({
         date: format(parseISO(exam.date), "d MMM", { locale: tr }),
         net: Number(exam.totalNet.toFixed(1)),
         examName: exam.examName ?? `${exam.examType} Denemesi`,
       }));
-  }, [examResults, currentUser.id, examType]);
+  }, [exams]);
 
   const yDomain = useMemo((): [number, number] => {
     if (chartData.length === 0) return [0, 100];
@@ -57,7 +66,7 @@ export function ExamNetTrendCard() {
             Deneme Net Grafiği
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {currentUser.name.split(" ")[0]} — {examType} net grafiği
+            {user?.name?.split(" ")[0] ?? "—"} — {examType} net grafiği
           </p>
         </div>
         <Tabs
@@ -76,7 +85,19 @@ export function ExamNetTrendCard() {
       </CardHeader>
 
       <CardContent>
-        {chartData.length === 0 ? (
+        {isLoading ? (
+          <Skeleton className="h-[260px] w-full" />
+        ) : isError ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-destructive mb-2">Trend verisi yuklenemedi</p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm text-primary hover:underline"
+            >
+              Tekrar dene
+            </button>
+          </div>
+        ) : chartData.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {examType} için henüz deneme sonucu yok.
           </p>

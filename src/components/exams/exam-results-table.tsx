@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useApp } from "@/lib/context";
+import { useState, useMemo } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useExamList, useUpdateExam } from "@/modules/exams/hooks/useExams";
+import { ExamStatus } from "@/types/common";
 import {
   Table,
   TableBody,
@@ -26,9 +28,17 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
-import { ChevronDown, ChevronRight, Eye, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
 import type { ExamType, ExamResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -37,22 +47,34 @@ interface ExamResultsTableProps {
   studentId?: string;
 }
 
-export function ExamResultsTable({ examType, studentId: propStudentId }: ExamResultsTableProps) {
-  const { examResults, currentUser, updateExamResult } = useApp();
+export function ExamResultsTable({
+  examType,
+  studentId: propStudentId,
+}: ExamResultsTableProps) {
+  const { user } = useAuth();
+  const studentId = propStudentId || user?.id || "";
+
+  const { data: allExams, isLoading, isError, refetch } = useExamList(studentId);
+  const updateExam = useUpdateExam();
+
   const [selectedExam, setSelectedExam] = useState<ExamResult | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const studentId = propStudentId || currentUser.id;
+  const filteredResults = useMemo(() => {
+    return (allExams ?? [])
+      .filter((exam) => exam.examType === examType)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [allExams, examType]);
 
-  const filteredResults = examResults
-    .filter(
-      (exam) =>
-        exam.examType === examType && exam.studentId === studentId
-    )
-    .sort((a, b) => b.date.localeCompare(a.date));
-
-  const handleAnalysisToggle = (id: string, checked: boolean) => {
-    updateExamResult(id, { analysisCompleted: checked });
+  const handleAnalysisToggle = (exam: ExamResult, checked: boolean) => {
+    updateExam.mutate({
+      id: exam.id,
+      studentId,
+      data: {
+        examCode: 0, // Backend mevcut examCode'u koruyacak (partial update bekleniyor)
+        status: checked ? ExamStatus.Completed : ExamStatus.Submitted,
+      },
+    });
   };
 
   const toggleRow = (id: string) => {
@@ -67,7 +89,6 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
     });
   };
 
-  // Calculate trend compared to previous exam
   const getTrend = (currentIndex: number) => {
     if (currentIndex >= filteredResults.length - 1) return null;
     const current = filteredResults[currentIndex];
@@ -77,6 +98,43 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
     if (diff < 0) return { type: "down", value: Math.abs(diff) };
     return { type: "same", value: 0 };
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">
+            {examType} Sonuçları
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">
+            {examType} Sonuçları
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-8 text-center">
+          <p className="text-sm text-destructive mb-2">Sonuclar yuklenemedi</p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary hover:underline"
+          >
+            Tekrar dene
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -96,14 +154,16 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
               {filteredResults.map((exam, index) => {
                 const isExpanded = expandedRows.has(exam.id);
                 const trend = getTrend(index);
-                const totalQuestions = exam.subjectResults?.reduce(
-                  (sum, s) => sum + s.questionCount,
-                  0
-                ) || 0;
+                const totalQuestions =
+                  exam.subjectResults?.reduce(
+                    (sum, s) => sum + s.questionCount,
+                    0
+                  ) || 0;
                 const answeredQuestions = exam.totalCorrect + exam.totalWrong;
-                const answeredPercentage = totalQuestions > 0 
-                  ? (answeredQuestions / totalQuestions) * 100 
-                  : 0;
+                const answeredPercentage =
+                  totalQuestions > 0
+                    ? (answeredQuestions / totalQuestions) * 100
+                    : 0;
 
                 return (
                   <div
@@ -118,7 +178,6 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                       )}
                       onClick={() => toggleRow(exam.id)}
                     >
-                      {/* Genişlet/Daralt */}
                       <div className="shrink-0">
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -127,7 +186,6 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                         )}
                       </div>
 
-                      {/* Tarih ve İsim */}
                       <div className="flex-1 min-w-0">
                         <div className="font-medium">
                           {format(parseISO(exam.date), "d MMMM yyyy", {
@@ -141,35 +199,27 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                         )}
                       </div>
 
-                      {/* Özet İstatistikler */}
                       <div className="hidden sm:flex items-center gap-6">
                         <div className="text-center">
                           <div className="text-sm font-medium text-success">
                             {exam.totalCorrect}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Doğru
-                          </div>
+                          <div className="text-xs text-muted-foreground">Doğru</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm font-medium text-destructive">
                             {exam.totalWrong}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Yanlış
-                          </div>
+                          <div className="text-xs text-muted-foreground">Yanlış</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm font-medium text-muted-foreground">
                             {exam.totalEmpty}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Boş
-                          </div>
+                          <div className="text-xs text-muted-foreground">Boş</div>
                         </div>
                       </div>
 
-                      {/* Net ve Trend */}
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
@@ -200,7 +250,6 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                         )}
                       </div>
 
-                      {/* Analiz Durumu */}
                       <div
                         className="flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
@@ -208,24 +257,21 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                         <Switch
                           checked={exam.analysisCompleted}
                           onCheckedChange={(checked) =>
-                            handleAnalysisToggle(exam.id, checked)
+                            handleAnalysisToggle(exam, checked)
                           }
+                          disabled={updateExam.isPending}
                         />
                         <Badge
-                          variant={
-                            exam.analysisCompleted ? "default" : "outline"
-                          }
+                          variant={exam.analysisCompleted ? "default" : "outline"}
                           className={cn(
                             "hidden sm:inline-flex",
-                            exam.analysisCompleted &&
-                              "bg-success/20 text-success"
+                            exam.analysisCompleted && "bg-success/20 text-success"
                           )}
                         >
                           {exam.analysisCompleted ? "Tamam" : "Bekliyor"}
                         </Badge>
                       </div>
 
-                      {/* Detay Butonu */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -243,12 +289,9 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                       <div className="border-t bg-muted/20 p-4">
                         <div className="grid gap-2">
                           {exam.subjectResults.map((subject) => {
-                            const subjectTotal =
-                              subject.correct + subject.wrong + subject.empty;
                             const subjectPercentage =
                               subject.questionCount > 0
-                                ? (subject.correct / subject.questionCount) *
-                                  100
+                                ? (subject.correct / subject.questionCount) * 100
                                 : 0;
 
                             return (
@@ -301,8 +344,7 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedExam?.examName ||
-                `${selectedExam?.examType} Sınavı`} -{" "}
+              {selectedExam?.examName || `${selectedExam?.examType} Sınavı`} -{" "}
               {selectedExam &&
                 format(parseISO(selectedExam.date), "d MMMM yyyy", {
                   locale: tr,
@@ -312,23 +354,18 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
 
           {selectedExam && (
             <div className="space-y-6">
-              {/* Genel Özet */}
               <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-success">
                     {selectedExam.totalCorrect}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Toplam Doğru
-                  </div>
+                  <div className="text-xs text-muted-foreground">Toplam Doğru</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-destructive">
                     {selectedExam.totalWrong}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Toplam Yanlış
-                  </div>
+                  <div className="text-xs text-muted-foreground">Toplam Yanlış</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-muted-foreground">
@@ -344,7 +381,6 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                 </div>
               </div>
 
-              {/* Ders Detayları */}
               <div>
                 <h4 className="font-semibold mb-3">Ders Bazlı Sonuçlar</h4>
                 <Table>
@@ -394,8 +430,8 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                                 percentage >= 70
                                   ? "default"
                                   : percentage >= 50
-                                  ? "secondary"
-                                  : "destructive"
+                                    ? "secondary"
+                                    : "destructive"
                               }
                               className={cn(
                                 percentage >= 70 && "bg-success/20 text-success"
@@ -411,8 +447,11 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                 </Table>
               </div>
 
-              {/* Konu Detayları (varsa) */}
-              {selectedExam.subjectResults?.some((s) => s.topicDetails?.length) && (
+              {/* BACKEND EKSIK #3: topicResults.correct/questionNumbers DTO'da yok.
+                  Konu bazli analiz bolumu backend tamamlanana kadar bos/0 degerlerle gorunur. */}
+              {selectedExam.subjectResults?.some(
+                (s) => s.topicDetails?.length
+              ) && (
                 <div>
                   <h4 className="font-semibold mb-3">Konu Bazlı Analiz</h4>
                   <div className="space-y-2">
@@ -434,8 +473,7 @@ export function ExamResultsTable({ examType, studentId: propStudentId }: ExamRes
                               >
                                 <span>
                                   {topic.topicName}
-                                  {topic.subtopicName &&
-                                    ` - ${topic.subtopicName}`}
+                                  {topic.subtopicName && ` - ${topic.subtopicName}`}
                                 </span>
                                 <div className="flex items-center gap-2">
                                   {topic.questionNumbers.length > 0 && (

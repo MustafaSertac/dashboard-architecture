@@ -10,13 +10,23 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronRight, BookOpen, GitBranch, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockYearlyStats } from "@/lib/mock/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { useYearlyAnalytics } from "@/modules/analytics/hooks/useAnalytics";
 
 interface YearlyAnalyticsProps {
   studentId?: string;
 }
 
-export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
+export function YearlyAnalytics({ studentId: propStudentId }: YearlyAnalyticsProps) {
+  const { user } = useAuth();
+  const studentId = propStudentId || user?.id || "";
+  const now = new Date();
+
+  // BACKEND EKSIK #8: Per-subject kirilim yok; backend tamamlanana kadar
+  // courseStats bos gelebilir.
+  const { data } = useYearlyAnalytics(studentId, now.getFullYear());
+  const courseStats = data?.courseStats ?? [];
+
   const [expandedCourses, setExpandedCourses] = useState<string[]>([]);
   const [expandedBranches, setExpandedBranches] = useState<string[]>([]);
 
@@ -37,7 +47,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
   };
 
   // Calculate totals
-  const totalStats = mockYearlyStats.reduce(
+  const totalStats = courseStats.reduce(
     (acc, course) => {
       course.branches.forEach((branch) => {
         acc.totalQuestions += branch.totalQuestions;
@@ -96,7 +106,7 @@ export function YearlyAnalytics({ studentId }: YearlyAnalyticsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {mockYearlyStats.map((course) => {
+            {courseStats.map((course) => {
               const isCourseExpanded = expandedCourses.includes(course.course);
               const courseTotalQuestions = course.branches.reduce(
                 (sum, b) => sum + b.totalQuestions,

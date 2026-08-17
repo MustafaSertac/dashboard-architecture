@@ -1,10 +1,21 @@
 "use client";
 
-import { useApp } from "@/lib/context";
+import {
+  startOfMonth,
+  endOfMonth,
+  format,
+  parseISO,
+  isToday,
+  isTomorrow,
+  isPast,
+} from "date-fns";
+import { tr } from "date-fns/locale";
+import { useTasksByRange, useDeleteTask } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +33,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format, parseISO, isToday, isTomorrow, isPast, isAfter } from "date-fns";
-import { tr } from "date-fns/locale";
 import { MoreHorizontal, Pencil, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 import type { FilterStatus, Task } from "@/lib/types";
 
 interface TaskListProps {
@@ -35,47 +45,93 @@ interface TaskListProps {
 }
 
 export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps) {
-  const { tasks, deleteTask, currentUser } = useApp();
-  const isTeacher = currentUser.role === "teacher" || currentUser.role === "admin";
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher" || user?.role === "admin";
 
-  const filteredTasks = tasks
+  // Bu ayin tam range'ini cek (backend dueDate donmeyebilir ama range query yine de calisir)
+  const now = new Date();
+  const startDate = format(startOfMonth(now), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(now), "yyyy-MM-dd");
+
+  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+    studentId,
+    startDate,
+    endDate
+  );
+
+  const deleteTask = useDeleteTask(studentId);
+
+  const filteredTasks = (tasks ?? [])
     .filter((task) => {
-      if (task.studentId !== studentId) return false;
       if (filterStatus === "completed") return task.status === "completed";
       if (filterStatus === "pending") return task.status !== "completed";
       return true;
     })
     .sort((a, b) => {
-      // Sort by date, then by status
-      const dateCompare = a.dueDate.localeCompare(b.dueDate);
+      const dateCompare = (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
       if (dateCompare !== 0) return dateCompare;
       if (a.status === "completed" && b.status !== "completed") return 1;
       if (a.status !== "completed" && b.status === "completed") return -1;
       return 0;
     });
 
-  // Group tasks by date
   const groupedTasks = filteredTasks.reduce((acc, task) => {
-    if (!acc[task.dueDate]) {
-      acc[task.dueDate] = [];
+    const key = task.dueDate ?? "Tarih yok";
+    if (!acc[key]) {
+      acc[key] = [];
     }
-    acc[task.dueDate].push(task);
+    acc[key].push(task);
     return acc;
   }, {} as Record<string, Task[]>);
 
   const getDateLabel = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return "Bugun";
-    if (isTomorrow(date)) return "Yarin";
-    return format(date, "d MMMM EEEE", { locale: tr });
+    if (dateStr === "Tarih yok") return "Tarih yok";
+    try {
+      const date = parseISO(dateStr);
+      if (isToday(date)) return "Bugun";
+      if (isTomorrow(date)) return "Yarin";
+      return format(date, "d MMMM EEEE", { locale: tr });
+    } catch {
+      return dateStr;
+    }
   };
 
   const getDateBadge = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return "default";
-    if (isPast(date)) return "destructive";
-    return "secondary";
+    if (dateStr === "Tarih yok") return "secondary" as const;
+    try {
+      const date = parseISO(dateStr);
+      if (isToday(date)) return "default" as const;
+      if (isPast(date)) return "destructive" as const;
+      return "secondary" as const;
+    } catch {
+      return "secondary" as const;
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-sm text-destructive mb-2">Görevler yuklenemedi</p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary hover:underline"
+          >
+            Tekrar dene
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -176,7 +232,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Iptal</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => deleteTask(task.id)}
+                                  onClick={() => deleteTask.mutate({ taskId: task.id })}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Sil

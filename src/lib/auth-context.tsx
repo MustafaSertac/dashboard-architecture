@@ -11,6 +11,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string, role: UiUserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  forgotPassword: (email: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  switchRole: (role: UiUserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useApp } from "@/lib/context";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { Task } from "@/lib/types";
 import { TYT_SUBJECTS, TOPICS_BY_SUBJECT } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import {
+  useCreateTask,
+  useUpdateTask,
+  useTasksByRange,
+  useTodayTasks,
+  useUpcomingTasks,
+} from "@/modules/study-tasks/hooks/useStudyTasks";
+import { mapUiTaskFormToCreateRequest } from "@/modules/study-tasks/mappers/study-task.mapper";
+import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface TaskModalProps {
   open: boolean;
@@ -37,17 +46,56 @@ export function TaskModal({
   editingTaskId,
   selectedStudentId,
 }: TaskModalProps) {
-  const { tasks, addTask, updateTask, currentUser, students } = useApp();
-  
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher" || user?.role === "admin";
+
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [questionCount, setQuestionCount] = useState("");
   const [studentId, setStudentId] = useState(selectedStudentId);
 
+  // Teacher/admin ise ogrenci listesini hook'tan al; student ise sadece kendisi.
+  const { data: teacherStudents } = useTeacherStudents(
+    isTeacher ? user?.id : undefined
+  );
+
+  const students = isTeacher
+    ? (teacherStudents ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+      }))
+    : user
+      ? [{ id: user.id, name: user.name }]
+      : [];
+
+  // Editing task verisini cek: bu ayin range'inden bugun+upcoming'ten dene
+  const now = new Date();
+  const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
+  const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
+  const { data: monthTasks } = useTasksByRange(
+    editingTaskId ? studentId : "__disabled__",
+    monthStart,
+    monthEnd
+  );
+  const { data: todayTasks } = useTodayTasks(
+    editingTaskId ? studentId : "__disabled__"
+  );
+  const { data: upcomingTasks } = useUpcomingTasks(
+    editingTaskId ? studentId : "__disabled__"
+  );
+
+  const allCandidateTasks = [
+    ...(monthTasks ?? []),
+    ...(todayTasks ?? []),
+    ...(upcomingTasks ?? []),
+  ];
   const editingTask = editingTaskId
-    ? tasks.find((t) => t.id === editingTaskId)
+    ? allCandidateTasks.find((t) => t.id === editingTaskId)
     : null;
+
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask(studentId);
 
   useEffect(() => {
     if (editingTask) {
@@ -60,7 +108,8 @@ export function TaskModal({
       resetForm();
       setStudentId(selectedStudentId);
     }
-  }, [editingTask, selectedStudentId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingTaskId, open]);
 
   const resetForm = () => {
     setDate(new Date().toISOString().split("T")[0]);
@@ -71,45 +120,61 @@ export function TaskModal({
 
   const availableTopics = subject ? TOPICS_BY_SUBJECT[subject] || [] : [];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!date || !subject || !topic || !questionCount) {
       toast.error("Lutfen tum alanlari doldurun");
       return;
     }
 
-    if (editingTask) {
-      updateTask(editingTask.id, {
-        dueDate: date,
-        subject,
-        topic,
-        questionCount: parseInt(questionCount),
-        studentId,
-      });
-      toast.success("Görev guncellendi");
-    } else {
-      const newTask: Task = {
-        id: Date.now().toString(),
-        studentId,
-        teacherId: currentUser.id,
-        dueDate: date,
-        subject,
-        topic,
-        questionCount: parseInt(questionCount),
-        completedQuestions: 0,
-        correctAnswers: 0,
-        wrongAnswers: 0,
-        hoursStudied: 0,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      addTask(newTask);
-      toast.success("Görev eklendi");
-    }
+    const targetStudentId = studentId || selectedStudentId;
 
-    onOpenChange(false);
-    resetForm();
+    if (editingTask) {
+      updateTask.mutate(
+        {
+          taskId: editingTask.id,
+          studentId: targetStudentId,
+          dueDate: date,
+          // UpdateTaskRequest optional alanlar; backend title/timings'i kendisi turetebilir
+          // ama guvenli olmak icin subject/topic'i de gonderelim.
+          lessonTitle: subject,
+          topicTitle: topic,
+          targetQuestions: parseInt(questionCount),
+        },
+        {
+          onSuccess: () => {
+            toast.success("Görev guncellendi");
+            onOpenChange(false);
+            resetForm();
+          },
+          onError: (err: unknown) => {
+            const msg = err instanceof Error ? err.message : "Gorev guncellenemedi";
+            toast.error(msg);
+          },
+        }
+      );
+    } else {
+      const req = mapUiTaskFormToCreateRequest({
+        studentId: targetStudentId,
+        subject,
+        topic,
+        questionCount: parseInt(questionCount),
+        dueDate: date,
+      });
+      createTask.mutate(req, {
+        onSuccess: () => {
+          toast.success("Görev eklendi");
+          onOpenChange(false);
+          resetForm();
+        },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Gorev eklenemedi";
+          toast.error(msg);
+        },
+      });
+    }
   };
+
+  const isPending = createTask.isPending || updateTask.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,21 +189,23 @@ export function TaskModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="student">Öğrenci</Label>
-            <Select value={studentId} onValueChange={setStudentId}>
-              <SelectTrigger id="student">
-                <SelectValue placeholder="Öğrenci seç" />
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((student) => (
-                  <SelectItem key={student.id} value={student.id}>
-                    {student.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isTeacher && (
+            <div>
+              <Label htmlFor="student">Öğrenci</Label>
+              <Select value={studentId} onValueChange={setStudentId}>
+                <SelectTrigger id="student">
+                  <SelectValue placeholder="Öğrenci seç" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="date">Tarih</Label>
@@ -209,8 +276,12 @@ export function TaskModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Iptal
           </Button>
-          <Button onClick={handleSubmit}>
-            {editingTask ? "Guncelle" : "Ekle"}
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending
+              ? "Kaydediliyor..."
+              : editingTask
+                ? "Guncelle"
+                : "Ekle"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,18 +1,51 @@
 "use client";
 
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useDashboardOverview } from "@/modules/analytics/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 
 export function RecentExamsCard() {
-  const { examResults, currentUser } = useApp();
-  
-  const recentExams = examResults
-    .filter((e) => e.studentId === currentUser.id)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 4);
+  const { user } = useAuth();
+  const { data, isLoading, isError, refetch } = useDashboardOverview(user?.id ?? "");
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Son Denemeler</CardTitle>
+        </CardHeader>
+        <CardContent className="py-6 text-center">
+          <p className="text-sm text-destructive mb-2">Denemeler yuklenemedi</p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary hover:underline"
+          >
+            Tekrar dene
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const recentExams = (data?.recentExams ?? []).slice(0, 4);
 
   return (
     <Card>

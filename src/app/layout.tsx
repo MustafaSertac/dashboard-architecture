@@ -4,7 +4,6 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/lib/auth-context";
-import { AppProvider } from "@/lib/context";
 import { AuthGuard } from "@/components/auth-guard";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -40,12 +39,10 @@ export default function RootLayout({
         >
           <QueryProvider>
             <AuthProvider>
-              <AppProvider>
-                <AuthGuard>
-                  {children}
-                </AuthGuard>
-                <Toaster />
-              </AppProvider>
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+              <Toaster />
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

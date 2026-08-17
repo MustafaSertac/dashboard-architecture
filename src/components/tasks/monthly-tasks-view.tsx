@@ -12,12 +12,12 @@ import {
   subMonths,
   startOfWeek,
   endOfWeek,
-  getDay,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useApp } from "@/lib/context";
+import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,13 +37,21 @@ interface MonthlyTasksViewProps {
 
 export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksViewProps) {
   const isTeacher = role === "teacher";
-  const { tasks } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+
+  const startDateStr = format(calendarStart, "yyyy-MM-dd");
+  const endDateStr = format(calendarEnd, "yyyy-MM-dd");
+
+  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+    studentId,
+    startDateStr,
+    endDateStr
+  );
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -52,10 +60,12 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
   const calendarDays = useMemo(() => {
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     return days.map((date): DaySummary => {
-      const dayTasks = tasks.filter(
-        (task) =>
-          task.studentId === studentId && isSameDay(new Date(task.dueDate), date)
-      );
+      const dateStr = format(date, "yyyy-MM-dd");
+      // BACKEND EKSIK #1 (Kritik): dueDate backend'den donmuyor; byStudentRange
+      // tek-gun fallback yerine tum ay rang'inde cagrildi. Backend tamamlanana
+      // kadar gun bazli dagilim "fallback = startDate" oldugu icin her task
+      // takvimde ayni gun'e dusecek. Backend #1 tamamlaninca duzgun calisacak.
+      const dayTasks = (tasks ?? []).filter((task) => task.dueDate === dateStr);
 
       const totalQuestions = dayTasks.reduce((sum, t) => sum + t.questionCount, 0);
       const completedQuestions = dayTasks.reduce(
@@ -92,7 +102,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
         status,
       };
     });
-  }, [calendarStart, calendarEnd, tasks, studentId]);
+  }, [calendarStart, calendarEnd, tasks]);
 
   const weekDays = ["Pzt", "Sal", "Car", "Per", "Cum", "Cmt", "Paz"];
 
@@ -177,67 +187,83 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
       </div>
 
       {/* Calendar Grid */}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              {weekDays.map((day) => (
-                <th key={day} className="p-3 text-center text-sm font-medium">
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map(
-              (_, weekIndex) => (
-                <tr key={weekIndex} className="border-b last:border-b-0">
-                  {calendarDays.slice(weekIndex * 7, weekIndex * 7 + 7).map((day) => {
-                    const isToday = isSameDay(day.date, new Date());
-                    const isCurrentMonthDay = isSameMonth(day.date, currentMonth);
+      {isLoading ? (
+        <Skeleton className="h-[400px] w-full" />
+      ) : isError ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-sm text-destructive mb-2">Veri yuklenemedi</p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm text-primary hover:underline"
+            >
+              Tekrar dene
+            </button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                {weekDays.map((day) => (
+                  <th key={day} className="p-3 text-center text-sm font-medium">
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map(
+                (_, weekIndex) => (
+                  <tr key={weekIndex} className="border-b last:border-b-0">
+                    {calendarDays.slice(weekIndex * 7, weekIndex * 7 + 7).map((day) => {
+                      const isToday = isSameDay(day.date, new Date());
+                      const isCurrentMonthDay = isSameMonth(day.date, currentMonth);
 
-                    return (
-                      <td
-                        key={day.date.toISOString()}
-                        className={cn(
-                          "border-r p-1 last:border-r-0",
-                          !isCurrentMonthDay && "opacity-40"
-                        )}
-                      >
-                        <div
+                      return (
+                        <td
+                          key={day.date.toISOString()}
                           className={cn(
-                            "min-h-[80px] rounded-md border p-2",
-                            statusColors[day.status],
-                            isToday && "ring-2 ring-primary"
+                            "border-r p-1 last:border-r-0",
+                            !isCurrentMonthDay && "opacity-40"
                           )}
                         >
                           <div
                             className={cn(
-                              "text-right text-sm font-medium",
-                              isToday && "text-primary"
+                              "min-h-[80px] rounded-md border p-2",
+                              statusColors[day.status],
+                              isToday && "ring-2 ring-primary"
                             )}
                           >
-                            {day.date.getDate()}
-                          </div>
-                          {day.totalQuestions > 0 && (
-                            <div className="mt-1 space-y-0.5 text-[10px]">
-                              <div>
-                                {day.completedQuestions}/{day.totalQuestions} soru
-                              </div>
-                              <div>{day.totalHours.toFixed(1)} saat</div>
-                              <div>{day.correctAnswers} doğru</div>
+                            <div
+                              className={cn(
+                                "text-right text-sm font-medium",
+                                isToday && "text-primary"
+                              )}
+                            >
+                              {day.date.getDate()}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
+                            {day.totalQuestions > 0 && (
+                              <div className="mt-1 space-y-0.5 text-[10px]">
+                                <div>
+                                  {day.completedQuestions}/{day.totalQuestions} soru
+                                </div>
+                                <div>{day.totalHours.toFixed(1)} saat</div>
+                                <div>{day.correctAnswers} doğru</div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">

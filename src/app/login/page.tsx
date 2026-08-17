@@ -107,6 +107,15 @@ export default function LoginPage() {
                   "Giris Yap"
                 )}
               </Button>
+
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Sifremi unuttum
+                </Link>
+              </div>
             </form>
 
             <div className="mt-6 text-center text-sm">
@@ -141,7 +150,7 @@ export default function LoginPage() {
             <div className="flex justify-between items-center p-2 rounded-lg bg-background/50">
               <div>
                 <span className="font-medium">Ogrenci:</span>
-                <span className="text-muted-foreground ml-2">ali@edu.com</span>
+                <span className="text-muted-foreground ml-2">elif@edu.com</span>
               </div>
               <span className="text-muted-foreground">student123</span>
             </div>

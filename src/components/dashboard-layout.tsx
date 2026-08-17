@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useApp } from "@/lib/context";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -48,11 +47,13 @@ const roleIcons: Record<UserRole, React.ReactNode> = {
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, switchRole } = useApp();
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const displayUser = user || currentUser;
+  const displayUser = user ?? {
+    name: "Kullanici",
+    role: "student" as UserRole,
+  };
 
   const handleLogout = () => {
     logout();
@@ -122,12 +123,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Rol Degistir</DropdownMenuLabel>
+                {/* Demo: switchRole client-side role override (BackendTalep.md notu) */}
+                <DropdownMenuLabel>Rol Degistir (Demo)</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {(["admin", "teacher", "student"] as UserRole[]).map((role) => (
                   <DropdownMenuItem
                     key={role}
-                    onClick={() => switchRole(role)}
+                    onClick={() => switchRole?.(role)}
                     className={cn(displayUser.role === role && "bg-accent")}
                   >
                     {roleIcons[role]}
@@ -190,7 +192,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 {(["admin", "teacher", "student"] as UserRole[]).map((role) => (
                   <DropdownMenuItem
                     key={role}
-                    onClick={() => switchRole(role)}
+                    onClick={() => switchRole?.(role)}
                     className={cn(displayUser.role === role && "bg-accent")}
                   >
                     {roleIcons[role]}

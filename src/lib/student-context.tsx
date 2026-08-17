@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
-import { User, Task } from "@/lib/types";
-import { MOCK_USERS as mockUsers } from "@/lib/mock/mock-users";
-import { mockTasks } from "@/lib/mock/mock-data";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { User } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
 
 interface StudentWithStats extends User {
   weeklyProgress: number;
@@ -17,64 +17,31 @@ interface StudentContextType {
   selectedStudent: User | null;
   setSelectedStudent: (student: User | null) => void;
   studentsWithStats: StudentWithStats[];
-  getStudentTasks: (studentId: string) => Task[];
 }
 
 const StudentContext = createContext<StudentContextType | undefined>(undefined);
 
+// BACKEND EKSIK #2 (Yuksek): Ogretmen-ogrenci liste endpoint'i YOK.
+// Bu provider artik useTeacherStudents hook'una dayanir; hook backend
+// tamamlanana kadar mock fallback doner, tamamlandiginda tek satir degisiklikle
+// gercek endpoint'e gecer.
 export function StudentProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
 
-  const studentsWithStats: StudentWithStats[] = useMemo(() => {
-    const students = mockUsers.filter((u) => u.role === "student");
+  const { data: teacherStudents } = useTeacherStudents(user?.id);
 
-    return students.map((student) => {
-      const studentTasks = mockTasks.filter(
-        (t) => t.studentId === student.id
-      );
-      const completedTasks = studentTasks.filter(
-        (t) => t.status === "completed"
-      ).length;
-      const totalHours = studentTasks.reduce(
-        (sum, t) => sum + (t.hoursStudied || 0),
-        0
-      );
-      const totalQuestions = studentTasks.reduce(
-        (sum, t) => sum + t.questionCount,
-        0
-      );
-      const completedQuestions = studentTasks.reduce(
-        (sum, t) => sum + (t.completedQuestions || 0),
-        0
-      );
-      const weeklyProgress =
-        totalQuestions > 0
-          ? Math.round((completedQuestions / totalQuestions) * 100)
-          : 0;
-
-      const lastTaskUpdate = studentTasks
-        .map((t) => new Date(t.updatedAt).getTime())
-        .sort((a, b) => b - a)[0];
-
-      const lastActive = lastTaskUpdate
-        ? new Date(lastTaskUpdate).toLocaleDateString("tr-TR")
-        : "Aktivite yok";
-
-      return {
-        ...student,
-        role: "student" as const,
-        weeklyProgress,
-        totalTasks: studentTasks.length,
-        completedTasks,
-        totalHours,
-        lastActive,
-      };
-    });
-  }, []);
-
-  const getStudentTasks = useCallback((studentId: string) => {
-    return mockTasks.filter((t) => t.studentId === studentId);
-  }, []);
+  const studentsWithStats: StudentWithStats[] = (teacherStudents ?? []).map(
+    (s) => ({
+      ...s,
+      role: "student" as const,
+      weeklyProgress: s.weeklyProgress,
+      totalTasks: s.totalTasks,
+      completedTasks: s.completedTasks,
+      totalHours: s.totalHours,
+      lastActive: s.lastActive,
+    })
+  );
 
   return (
     <StudentContext.Provider
@@ -82,7 +49,6 @@ export function StudentProvider({ children }: { children: ReactNode }) {
         selectedStudent,
         setSelectedStudent,
         studentsWithStats,
-        getStudentTasks,
       }}
     >
       {children}

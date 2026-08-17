@@ -2,6 +2,8 @@ export const endpoints = {
   auth: {
     login: "/auth/login",
     registerStudent: "/auth/student",
+    // BACKEND HATA H-1: "teachter" yazimi backend kaynak kodunda boyle.
+    // Backend /auth/teacher olarak duzeltilene kadar bu URL kullanilir.
     registerTeacher: "/auth/teachter",
     forgotPassword: "/auth/forgot-password",
     refreshToken: "/auth/refresh-token",
@@ -36,6 +38,9 @@ export const endpoints = {
     list: "/exams",
     detail: (id: string) => `/exams/${id}`,
     trends: "/exams/trends",
+    // BACKEND EKSIK #7 (Orta): Toplu trend endpoint'i YOK.
+    // Tek tek /exams/trends cagrilmaya devam eder (N+1 kabul).
+    trendsAll: "/exams/trends/all",
     create: "/exams",
     update: (id: string) => `/exams/${id}`,
     delete: (id: string) => `/exams/${id}`,
@@ -50,7 +55,25 @@ export const endpoints = {
     update: "/study-tasks/update",
     delete: "/study-tasks",
     complete: "/study-tasks/complete",
+    // BACKEND EKSIK #6 (Orta): Toplu complete endpoint'i YOK.
+    // Stub: hizmet hook'u once bunu cagistir, 404/405 gelirse per-task complete'e duser.
+    completeBatch: "/study-tasks/complete/batch",
     logStudy: "/study-tasks/log-study",
+  },
+
+  // BACKEND EKSIK #2 (Yuksek): Ogretmen-Ogrenci liste endpoint'i YOK.
+  // Stub: once /students?teacherId= denenir, 404 gelirse mock fallback'e duser.
+  students: {
+    listByTeacher: "/students",
+  },
+
+  // BACKEND EKSIK #5 (Orta): Not/Feedback endpoint'i YOK.
+  // Stub: once /students/{id}/notes denenir, 404 gelirse simulated setTimeout fallback.
+  notes: {
+    list: (studentId: string) => `/students/${studentId}/notes`,
+    create: (studentId: string) => `/students/${studentId}/notes`,
+    delete: (studentId: string, noteId: string) =>
+      `/students/${studentId}/notes/${noteId}`,
   },
 
   analytics: {

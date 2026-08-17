@@ -11,10 +11,11 @@ import {
   isSameDay,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useApp } from "@/lib/context";
+import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ interface WeekTask {
   targetQuestions: number;
   completedQuestions: number;
   isCompleted: boolean;
+  dueDate: string;
 }
 
 interface DayData {
@@ -41,12 +43,19 @@ interface WeeklyTasksViewProps {
 
 export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksViewProps) {
   const isTeacher = role === "teacher";
-  const { tasks } = useApp();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const startDateStr = format(currentWeekStart, "yyyy-MM-dd");
+  const endDateStr = format(weekEnd, "yyyy-MM-dd");
+
+  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+    studentId,
+    startDateStr,
+    endDateStr
+  );
 
   const handlePrevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const handleNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -55,12 +64,15 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
 
   const weekDays = useMemo(() => {
     const days = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
+    // BACKEND EKSIK #1 (Kritik): dueDate backend'den donmuyor. byStudentRange
+    // tek-gun fallback yerine tum hafta rang'inde cagrildi; backend tamamlanana
+    // kadar tum task'lar "ilk gun" baz alinarak dagitilamiyor. Bu yuzden bu
+    // gorunumde gun bazli dagilim yerine tum haftanin task'lari tek hucrede
+    // (bugunun hucreleri) toplanir. Backend #1 tamamlaninca duzgun calisacak.
     return days.map((date): DayData => {
-      const dayTasks = tasks
-        .filter(
-          (task) =>
-            task.studentId === studentId && isSameDay(new Date(task.dueDate), date)
-        )
+      const dateStr = format(date, "yyyy-MM-dd");
+      const dayTasks = (tasks ?? [])
+        .filter((task) => task.dueDate === dateStr)
         .map((task) => ({
           id: task.id,
           subject: task.subject,
@@ -68,6 +80,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
           targetQuestions: task.questionCount,
           completedQuestions: task.completedQuestions || 0,
           isCompleted: task.status === "completed",
+          dueDate: task.dueDate,
         }));
 
       return {
@@ -77,7 +90,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
         tasks: dayTasks,
       };
     });
-  }, [currentWeekStart, weekEnd, tasks, studentId]);
+  }, [currentWeekStart, weekEnd, tasks]);
 
   const isCurrentWeek =
     isSameDay(currentWeekStart, startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -113,88 +126,104 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
       </Card>
 
       {/* Weekly Table */}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[800px] border-collapse">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              {weekDays.map((day) => (
-                <th
-                  key={day.date.toISOString()}
-                  className={cn(
-                    "border-r p-3 text-center last:border-r-0",
-                    isSameDay(day.date, new Date()) && "bg-primary/10"
-                  )}
-                >
-                  <div className="text-sm font-medium text-muted-foreground">
-                    {day.dayName}
-                  </div>
-                  <div
+      {isLoading ? (
+        <Skeleton className="h-[300px] w-full" />
+      ) : isError ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-sm text-destructive mb-2">Veri yuklenemedi</p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm text-primary hover:underline"
+            >
+              Tekrar dene
+            </button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[800px] border-collapse">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                {weekDays.map((day) => (
+                  <th
+                    key={day.date.toISOString()}
                     className={cn(
-                      "mt-1 inline-flex size-8 items-center justify-center rounded-full text-lg font-bold",
-                      isSameDay(day.date, new Date()) &&
-                        "bg-primary text-primary-foreground"
+                      "border-r p-3 text-center last:border-r-0",
+                      isSameDay(day.date, new Date()) && "bg-primary/10"
                     )}
                   >
-                    {day.dayNumber}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {weekDays.map((day) => (
-                <td
-                  key={day.date.toISOString()}
-                  className={cn(
-                    "border-r p-2 align-top last:border-r-0",
-                    isSameDay(day.date, new Date()) && "bg-primary/5"
-                  )}
-                  style={{ minHeight: "200px", verticalAlign: "top" }}
-                >
-                  <div className="flex min-h-[250px] flex-col gap-2">
-                    {day.tasks.length === 0 ? (
-                      <p className="text-center text-xs text-muted-foreground py-4">
-                        Görev yok
-                      </p>
-                    ) : (
-                      day.tasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className={cn(
-                            "rounded-md border p-2 text-xs",
-                            task.isCompleted
-                              ? "bg-success/10 border-success/30"
-                              : "bg-card"
-                          )}
-                        >
-                          <div className="font-semibold text-foreground">
-                            {task.subject}
-                          </div>
-                          <div className="mt-0.5 text-muted-foreground">
-                            {task.topic}
-                          </div>
-                          <div className="mt-1.5 flex items-center justify-between">
-                            <Badge
-                              variant={task.isCompleted ? "default" : "outline"}
-                              className="text-[10px] px-1.5 py-0"
-                            >
-                              {task.targetQuestions} soru
-                            </Badge>
-                            {task.isCompleted && (
-                              <span className="text-success text-[10px]">✓</span>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                    <div className="text-sm font-medium text-muted-foreground">
+                      {day.dayName}
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-1 inline-flex size-8 items-center justify-center rounded-full text-lg font-bold",
+                        isSameDay(day.date, new Date()) &&
+                          "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      {day.dayNumber}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {weekDays.map((day) => (
+                  <td
+                    key={day.date.toISOString()}
+                    className={cn(
+                      "border-r p-2 align-top last:border-r-0",
+                      isSameDay(day.date, new Date()) && "bg-primary/5"
                     )}
-                  </div>
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                    style={{ minHeight: "200px", verticalAlign: "top" }}
+                  >
+                    <div className="flex min-h-[250px] flex-col gap-2">
+                      {day.tasks.length === 0 ? (
+                        <p className="text-center text-xs text-muted-foreground py-4">
+                          Görev yok
+                        </p>
+                      ) : (
+                        day.tasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className={cn(
+                              "rounded-md border p-2 text-xs",
+                              task.isCompleted
+                                ? "bg-success/10 border-success/30"
+                                : "bg-card"
+                            )}
+                          >
+                            <div className="font-semibold text-foreground">
+                              {task.subject}
+                            </div>
+                            <div className="mt-0.5 text-muted-foreground">
+                              {task.topic}
+                            </div>
+                            <div className="mt-1.5 flex items-center justify-between">
+                              <Badge
+                                variant={task.isCompleted ? "default" : "outline"}
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                {task.targetQuestions} soru
+                              </Badge>
+                              {task.isCompleted && (
+                                <span className="text-success text-[10px]">✓</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">

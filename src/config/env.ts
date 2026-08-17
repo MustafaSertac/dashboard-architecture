@@ -1,6 +1,8 @@
 export const env = {
-  API_BASE_URL:
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5295/api/v1.0",
+  // Dev'de Next.js rewrite proxy'si (next.config.mjs) kullanilir; ayni origin
+  // oldugu icin CORS preflight gerekmez. Production'da NEXT_PUBLIC_API_BASE_URL
+  // gercek backend URL'si olarak set edilmelidir.
+  API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api/v1.0",
   API_VERSION: "v1.0",
   ACCESS_TOKEN_KEY: "edc_access_token",
   REFRESH_TOKEN_KEY: "edc_refresh_token",

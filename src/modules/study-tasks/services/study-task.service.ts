@@ -56,6 +56,18 @@ export const studyTaskService = {
     return res.data.data;
   },
 
+  // BACKEND EKSIK #6 (Orta): Toplu complete endpoint'i YOK.
+  // Service seviyesinde endpoint tanimlidir; hook 404/405 gelirse per-task'a duser.
+  async completeBatch(taskIds: string[]): Promise<{
+    completedCount: number;
+    failedIds: string[];
+  }> {
+    const res = await apiClient.post(endpoints.studyTasks.completeBatch, {
+      taskIds,
+    });
+    return res.data.data;
+  },
+
   async logStudy(data: LogTaskStudyRequest): Promise<StudyTaskDTO> {
     const res = await apiClient.post(endpoints.studyTasks.logStudy, data);
     return res.data.data;

@@ -1,44 +1,72 @@
 "use client";
 
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useDashboardOverview } from "@/modules/analytics/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, CheckCircle, Clock, TrendingUp } from "lucide-react";
 
 export function QuickStatsCard() {
-  const { tasks, examResults, currentUser } = useApp();
-  
-  const studentTasks = tasks.filter((t) => t.studentId === currentUser.id);
-  const studentExams = examResults.filter((e) => e.studentId === currentUser.id);
+  const { user } = useAuth();
+  const { data, isLoading, isError, refetch } = useDashboardOverview(user?.id ?? "");
 
-  const totalSolved = studentTasks.reduce((sum, t) => sum + t.completedQuestions, 0);
-  const completedTasks = studentTasks.filter((t) => t.status === "completed").length;
-  const pendingTasks = studentTasks.filter((t) => t.status !== "completed").length;
-  const latestNet = studentExams.length > 0 
-    ? studentExams.sort((a, b) => b.date.localeCompare(a.date))[0].totalEmpty 
-    : 0;
+  if (isLoading) {
+    return (
+      <>
+        {[0, 1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16" />
+            </CardContent>
+          </Card>
+        ))}
+      </>
+    );
+  }
 
+  if (isError) {
+    return (
+      <Card className="col-span-2 md:col-span-4">
+        <CardContent className="py-6 text-center">
+          <p className="text-sm text-destructive mb-2">Istatistikler yuklenemedi</p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary hover:underline"
+          >
+            Tekrar dene
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const qs = data?.quickStats;
   const stats = [
     {
       title: "Toplam Soru",
-      value: totalSolved.toLocaleString(),
+      value: (qs?.totalSolvedQuestions ?? 0).toLocaleString(),
       icon: BookOpen,
       color: "text-primary",
     },
     {
       title: "Tamamlanan",
-      value: completedTasks.toString(),
+      value: (qs?.completedTasks ?? 0).toString(),
       icon: CheckCircle,
       color: "text-green-500",
     },
     {
       title: "Bekleyen",
-      value: pendingTasks.toString(),
+      value: (qs?.pendingTasks ?? 0).toString(),
       icon: Clock,
       color: "text-warning",
     },
     {
       title: "Son Net",
-      value: 91.5,
+      value: qs?.latestNet != null ? qs.latestNet.toFixed(1) : "—",
       icon: TrendingUp,
       color: "text-info",
     },

@@ -12,14 +12,26 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronRight, BookOpen, GitBranch, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockMonthlyStats, mockMonthlyTopicStats } from "@/lib/mock/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { useMonthlyAnalytics } from "@/modules/analytics/hooks/useAnalytics";
 import type { FilterStatus } from "@/lib/types";
 
 interface MonthlyAnalyticsProps {
   studentId?: string;
 }
 
-export function MonthlyAnalytics({ studentId }: MonthlyAnalyticsProps) {
+export function MonthlyAnalytics({ studentId: propStudentId }: MonthlyAnalyticsProps) {
+  const { user } = useAuth();
+  const studentId = propStudentId || user?.id || "";
+  const now = new Date();
+
+  // BACKEND EKSIK #8 (Orta): Per-subject kirilim yok. summary tek aggregate doner;
+  // backend ?perSubject=true destekleyene kadar courseStats bos gelebilir.
+  const { data } = useMonthlyAnalytics(studentId, now.getFullYear(), now.getMonth() + 1);
+
+  const subjectStats = data?.subjectStats ?? [];
+  const courseStats = data?.courseStats ?? [];
+
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [expandedCourses, setExpandedCourses] = useState<string[]>([]);
   const [expandedBranches, setExpandedBranches] = useState<string[]>([]);
@@ -40,7 +52,7 @@ export function MonthlyAnalytics({ studentId }: MonthlyAnalyticsProps) {
     );
   };
 
-  const filteredStats = mockMonthlyStats.filter((stat) => {
+  const filteredStats = subjectStats.filter((stat) => {
     if (filterStatus === "completed") return stat.pendingCount === 0;
     if (filterStatus === "pending") return stat.pendingCount > 0;
     return true;
@@ -57,7 +69,7 @@ export function MonthlyAnalytics({ studentId }: MonthlyAnalyticsProps) {
   );
 
   // Calculate totals from topic stats
-  const topicTotals = mockMonthlyTopicStats.reduce(
+  const topicTotals = courseStats.reduce(
     (acc, course) => {
       course.branches.forEach((branch) => {
         acc.totalQuestions += branch.totalQuestions;
@@ -164,7 +176,7 @@ export function MonthlyAnalytics({ studentId }: MonthlyAnalyticsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {mockMonthlyTopicStats.map((course) => {
+            {courseStats.map((course) => {
               const isCourseExpanded = expandedCourses.includes(course.course);
               const courseTotalQuestions = course.branches.reduce(
                 (sum, b) => sum + b.totalQuestions,

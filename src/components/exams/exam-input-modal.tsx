@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useCreateExam } from "@/modules/exams/hooks/useExams";
+import { mapUiExamFormToCreateRequest } from "@/modules/exams/mappers/exam.mapper";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +39,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Check, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
-import type { ExamType, ExamResult, SubjectResult, TopicDetail } from "@/lib/types";
+import type { ExamType, SubjectResult, TopicDetail } from "@/lib/types";
 import { getExamConfig, getTotalQuestions, type SubjectConfig } from "@/config/exam-config";
 import { cn } from "@/lib/utils";
 
@@ -64,8 +66,9 @@ interface TopicDetailInput {
 }
 
 export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModalProps) {
-  const { addExamResult, currentUser } = useApp();
-  const targetStudentId = studentId || currentUser.id;
+  const { user } = useAuth();
+  const targetStudentId = studentId || user?.id || "";
+  const createExam = useCreateExam();
 
   const [examType, setExamType] = useState<ExamType>("TYT");
   const [examName, setExamName] = useState("");
@@ -239,24 +242,27 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
       };
     });
 
-    const newResult: ExamResult = {
-      id: Date.now().toString(),
+    // Backend'e gonderilecek request (mock addExamResult yerine)
+    const createReq = mapUiExamFormToCreateRequest({
       studentId: targetStudentId,
-      date,
       examType,
-      examName: examName || undefined,
-      totalCorrect: totals.totalCorrect,
-      totalWrong: totals.totalWrong,
-      totalEmpty: totals.totalEmpty,
-      totalNet: totals.totalNet,
+      examName: examName || `${examType} Denemesi`,
+      date,
       subjectResults,
       analysisCompleted: showTopicDetails,
-    };
+    });
 
-    addExamResult(newResult);
-    toast.success("Deneme sonucu başarıyla eklendi");
-    onOpenChange(false);
-    resetForm();
+    createExam.mutate(createReq, {
+      onSuccess: () => {
+        toast.success("Deneme sonucu başarıyla eklendi");
+        onOpenChange(false);
+        resetForm();
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Deneme eklenemedi";
+        toast.error(msg);
+      },
+    });
   };
 
   const resetForm = () => {
@@ -607,8 +613,12 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             İptal
           </Button>
-          <Button onClick={handleSubmit} disabled={!allSubjectsValid}>
-            {allSubjectsValid ? "Kaydet" : "Tüm Dersleri Doldurun"}
+          <Button onClick={handleSubmit} disabled={!allSubjectsValid || createExam.isPending}>
+            {createExam.isPending
+              ? "Kaydediliyor..."
+              : allSubjectsValid
+                ? "Kaydet"
+                : "Tüm Dersleri Doldurun"}
           </Button>
         </DialogFooter>
       </DialogContent>

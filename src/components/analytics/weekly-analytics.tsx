@@ -11,7 +11,8 @@ import {
   isSameDay,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -37,13 +38,22 @@ interface WeeklyAnalyticsProps {
 }
 
 export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsProps) {
-  const { tasks, currentUser, students } = useApp();
+  const { user } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
 
-  const studentId = propStudentId || (currentUser.role === "student" ? currentUser.id : students[0]?.id);
+  const studentId = propStudentId || user?.id || "";
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+
+  // BACKEND EKSIK #1 (Kritik): StudyTaskDTO.dueDate yok. Range query gun bazli
+  // dagilimi backend #1 tamamlanana kadar sinirli; backend tamamlaninca duzelir.
+  const { data: tasksData } = useTasksByRange(
+    studentId,
+    format(currentWeekStart, "yyyy-MM-dd"),
+    format(weekEnd, "yyyy-MM-dd")
+  );
+  const tasks = tasksData ?? [];
 
   const handlePrevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const handleNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));

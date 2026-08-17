@@ -1,22 +1,61 @@
 "use client";
 
-import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth-context";
+import { useTodayTasks } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function TodayTasksCard() {
-  const { tasks, currentUser } = useApp();
-  const today = new Date().toISOString().split("T")[0];
-  
-  const todayTasks = tasks.filter(
-    (task) => task.dueDate === today && task.studentId === currentUser.id
-  );
+  const { user } = useAuth();
+  const { data: tasks, isLoading, isError, refetch } = useTodayTasks(user?.id ?? "");
 
-  const totalQuestions = todayTasks.reduce((sum, t) => sum + t.questionCount, 0);
-  const solvedQuestions = todayTasks.reduce((sum, t) => sum + t.completedQuestions, 0);
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-2 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Bugünün Görevleri</CardTitle>
+        </CardHeader>
+        <CardContent className="py-6 text-center">
+          <p className="text-sm text-destructive mb-2">Görevler yüklenemedi</p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary hover:underline"
+          >
+            Tekrar dene
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const todayTasks = tasks ?? [];
+  const totalQuestions = todayTasks.reduce(
+    (sum, t) => sum + t.questionCount,
+    0
+  );
+  const solvedQuestions = todayTasks.reduce(
+    (sum, t) => sum + t.completedQuestions,
+    0
+  );
   const progress = totalQuestions > 0 ? (solvedQuestions / totalQuestions) * 100 : 0;
   const belowMinimum = solvedQuestions < 50;
 
@@ -43,7 +82,7 @@ export function TodayTasksCard() {
               <span className="font-medium">{solvedQuestions} / {totalQuestions} soru</span>
             </div>
             <Progress value={progress} className="h-2" />
-            
+
             <div className="space-y-2">
               {todayTasks.map((task) => (
                 <div

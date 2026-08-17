@@ -23,13 +23,19 @@ export const qk = {
       ["exams", id, detailed] as const,
     trends: (studentId: string, examCode: number, limit?: number) =>
       ["exams", "trends", studentId, examCode, limit] as const,
+    // BACKEND EKSIK #7: Toplu trend.
+    trendsAll: (examCode: number, limit?: number) =>
+      ["exams", "trends-all", examCode, limit] as const,
   },
 
   tasks: {
     today: (studentId: string) => ["tasks", "today", studentId] as const,
-    upcoming: (studentId: string) => ["tasks", "upcoming", studentId] as const,
+    upcoming: (studentId: string) =>
+      ["tasks", "upcoming", studentId] as const,
     byRange: (studentId: string, startDate?: string, endDate?: string) =>
       ["tasks", "range", studentId, startDate, endDate] as const,
+    // Tum task query'lerini invalidasyonda prefix match icin kullanilir.
+    allForStudent: (studentId: string) => ["tasks", { studentId }] as const,
   },
 
   analytics: {
@@ -41,5 +47,14 @@ export const qk = {
       ["analytics", "yearly", studentId, year] as const,
     dashboard: (studentId: string) =>
       ["analytics", "dashboard", studentId] as const,
+  },
+
+  // BACKEND EKSIK #2: Ogretmen-ogrenci listesi.
+  teacherStudents: (teacherId: string) =>
+    ["teacher", "students", teacherId] as const,
+
+  // BACKEND EKSIK #5: Notlar.
+  notes: {
+    list: (studentId: string) => ["notes", "list", studentId] as const,
   },
 } as const;

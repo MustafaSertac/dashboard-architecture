@@ -105,12 +105,32 @@ export function useAuth() {
     router.push("/login");
   }, [clearAuth, router]);
 
+  // BACKEND EKSIK #9 (Dusuk): /auth/forgot-password sadece {email, newPassword} aliyr;
+  // email dogrulamali/token bazli sifirlama akisi YOK. Frontend yine de mevcut endpoint'i kullanir.
+  const forgotPassword = useCallback(
+    async (
+      email: string,
+      newPassword: string
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        await authService.forgotPassword({ email, newPassword });
+        return { success: true };
+      } catch (error: unknown) {
+        const msg =
+          error instanceof Error ? error.message : "Sifre sifirlama basarisiz";
+        return { success: false, error: msg };
+      }
+    },
+    []
+  );
+
   return {
     user,
     isLoading,
     login,
     register,
     logout,
+    forgotPassword,
     setUser,
     switchRole,
     accessToken,

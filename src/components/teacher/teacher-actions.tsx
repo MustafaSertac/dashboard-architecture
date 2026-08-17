@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/context";
 import { Button } from "@/components/ui/button";
 import { TaskModal } from "@/components/tasks/task-modal";
 import { NoteModal } from "@/components/teacher/note-modal";

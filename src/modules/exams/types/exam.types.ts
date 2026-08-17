@@ -25,6 +25,11 @@ export interface ExamTopicResultDTO {
   name: string;
   wrong: number;
   blank: number;
+  // BACKEND EKSIK #3 (Yuksek): correct ve questionNumbers alanlari YOK.
+  // UI "{correct}D/{wrong}Y/{blank}B" ve soru numaralari gosterimi icin gerekli.
+  // Frontend varmis gibi implement etti; backend ekleyene kadar 0/[] fallback.
+  correct?: number;
+  questionNumbers?: number[];
 }
 
 export interface ExamDTO {
@@ -70,8 +75,12 @@ export interface CreateExamSectionLessonRequest {
   topicResults?: {
     topicCode: number;
     name: string;
+    // BACKEND EKSIK #3: correct gonderiyoruz ama backend tanimiyor (deprecated'e gitmeyecek).
+    correct?: number;
     wrong: number;
     blank: number;
+    // BACKEND EKSIK #3: questionNumbers gonderiyoruz ama backend tanimiyor.
+    questionNumbers?: number[];
   }[];
 }
 
