@@ -7,6 +7,7 @@ import { examTypeToExamCode } from "@/types/common";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   CartesianGrid,
   Line,
@@ -31,7 +32,7 @@ export function ExamNetTrendCard() {
   const [examType, setExamType] = useState<ExamType>("TYT");
   const examCode = examTypeToExamCode(examType);
 
-  const { data: exams, isLoading, isError, refetch } = useExamTrends(
+  const { data: exams, isLoading, isError, error, refetch } = useExamTrends(
     user?.id ?? "",
     examCode
   );
@@ -88,15 +89,7 @@ export function ExamNetTrendCard() {
         {isLoading ? (
           <Skeleton className="h-[260px] w-full" />
         ) : isError ? (
-          <div className="py-12 text-center">
-            <p className="text-sm text-destructive mb-2">Trend verisi yuklenemedi</p>
-            <button
-              onClick={() => refetch()}
-              className="text-sm text-primary hover:underline"
-            >
-              Tekrar dene
-            </button>
-          </div>
+          <ErrorState error={error} title="Trend verisi yuklenemedi" onRetry={() => refetch()} />
         ) : chartData.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {examType} için henüz deneme sonucu yok.

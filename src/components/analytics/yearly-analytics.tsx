@@ -12,6 +12,8 @@ import { ChevronRight, BookOpen, GitBranch, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useYearlyAnalytics } from "@/modules/analytics/hooks/useAnalytics";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface YearlyAnalyticsProps {
   studentId?: string;
@@ -22,13 +24,52 @@ export function YearlyAnalytics({ studentId: propStudentId }: YearlyAnalyticsPro
   const studentId = propStudentId || user?.id || "";
   const now = new Date();
 
-  // BACKEND EKSIK #8: Per-subject kirilim yok; backend tamamlanana kadar
-  // courseStats bos gelebilir.
-  const { data } = useYearlyAnalytics(studentId, now.getFullYear());
+  // BACKEND #8 (Orta) TAMAMLANDI: perSubjectStats destekleniyor.
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useYearlyAnalytics(studentId, now.getFullYear());
   const courseStats = data?.courseStats ?? [];
 
   const [expandedCourses, setExpandedCourses] = useState<string[]>([]);
   const [expandedBranches, setExpandedBranches] = useState<string[]>([]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="py-8">
+            <Skeleton className="h-40 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent>
+          <ErrorState error={error} title="Yillik analiz yuklenemedi" onRetry={() => refetch()} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   const toggleCourse = (course: string) => {
     setExpandedCourses((prev) =>

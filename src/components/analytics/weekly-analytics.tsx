@@ -16,6 +16,8 @@ import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { ChevronLeft, ChevronRight, TrendingUp, Clock, BookOpen, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,9 +48,14 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
   const studentId = propStudentId || user?.id || "";
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
 
-  // BACKEND EKSIK #1 (Kritik): StudyTaskDTO.dueDate yok. Range query gun bazli
-  // dagilimi backend #1 tamamlanana kadar sinirli; backend tamamlaninca duzelir.
-  const { data: tasksData } = useTasksByRange(
+  // BACKEND #1 (Kritik) TAMAMLANDI: StudyTaskDTO.dueDate artik donuyor.
+  const {
+    data: tasksData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useTasksByRange(
     studentId,
     format(currentWeekStart, "yyyy-MM-dd"),
     format(weekEnd, "yyyy-MM-dd")
@@ -215,6 +222,45 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
 
     return weeks;
   }, [currentWeekStart, weekDays, tasks, studentId]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <Skeleton className="h-9 w-9" />
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-9 w-9" />
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="mt-2 h-8 w-12" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="py-8">
+            <Skeleton className="h-40 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent>
+          <ErrorState error={error} title="Haftalik analiz yuklenemedi" onRetry={() => refetch()} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

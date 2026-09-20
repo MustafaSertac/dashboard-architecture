@@ -17,19 +17,21 @@ interface StudentContextType {
   selectedStudent: User | null;
   setSelectedStudent: (student: User | null) => void;
   studentsWithStats: StudentWithStats[];
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => void;
 }
 
 const StudentContext = createContext<StudentContextType | undefined>(undefined);
 
-// BACKEND EKSIK #2 (Yuksek): Ogretmen-ogrenci liste endpoint'i YOK.
-// Bu provider artik useTeacherStudents hook'una dayanir; hook backend
-// tamamlanana kadar mock fallback doner, tamamlandiginda tek satir degisiklikle
-// gercek endpoint'e gecer.
+// BACKEND #2 (Yuksek) TAMAMLANDI: GET /teachers/{teacherId}/students.
 export function StudentProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
 
-  const { data: teacherStudents } = useTeacherStudents(user?.id);
+  const { data: teacherStudents, isLoading, isError, error, refetch } =
+    useTeacherStudents(user?.id);
 
   const studentsWithStats: StudentWithStats[] = (teacherStudents ?? []).map(
     (s) => ({
@@ -49,6 +51,10 @@ export function StudentProvider({ children }: { children: ReactNode }) {
         selectedStudent,
         setSelectedStudent,
         studentsWithStats,
+        isLoading,
+        isError,
+        error,
+        refetch,
       }}
     >
       {children}

@@ -28,6 +28,7 @@ import {
   Users,
   Shield,
   LogOut,
+  User,
 } from "lucide-react";
 import { UserRole } from "@/lib/types";
 
@@ -36,6 +37,7 @@ const navigation = [
   { name: "Deneme Analiz", href: "/dashboard/exams", icon: FileText },
   { name: "Görevler", href: "/dashboard/tasks", icon: ListTodo },
   { name: "Analizler", href: "/dashboard/analytics", icon: BarChart3 },
+  { name: "Profil", href: "/dashboard/profile", icon: User },
 ];
 
 const roleIcons: Record<UserRole, React.ReactNode> = {

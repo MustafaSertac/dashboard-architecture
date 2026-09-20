@@ -20,7 +20,7 @@ export function roleToApi(r: UiUserRole): number {
   return UI_ROLE_TO_API[r];
 }
 
-export type ExamCode = 10 | 11;
+export type ExamCode = 10 | 11 | 12;
 export const EXAM_CODE = { TYT: 10, AYT: 11, Both: 12 } as const;
 
 export enum ExamStatus {

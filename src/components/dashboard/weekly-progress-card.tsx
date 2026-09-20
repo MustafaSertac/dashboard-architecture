@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useWeeklyAnalytics } from "@/modules/analytics/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   BarChart,
   Bar,
@@ -26,10 +27,25 @@ export function WeeklyProgressCard() {
     return format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
   }, []);
 
-  const { data: days, isLoading, isError, refetch } = useWeeklyAnalytics(
+  const { data: days, isLoading, isError, error, refetch } = useWeeklyAnalytics(
     user?.id ?? "",
     weekStart
   );
+
+  // Backend'den gelen gun bazli kirilimi son 7 gun icin yeniden sekillendir
+  const weeklyData = useMemo(() => {
+    const today = startOfDay(new Date());
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = subDays(today, 6 - i);
+      const dateStr = format(date, "yyyy-MM-dd");
+      const day = (days ?? []).find((d) => d.date === dateStr);
+      return {
+        day: format(date, "EEE", { locale: tr }),
+        soru: day?.questionCount ?? 0,
+        dogru: day?.correctCount ?? 0,
+      };
+    });
+  }, [days]);
 
   if (isLoading) {
     return (
@@ -51,32 +67,11 @@ export function WeeklyProgressCard() {
           <CardTitle className="text-base font-semibold">Haftalık İlerleme</CardTitle>
         </CardHeader>
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-destructive mb-2">Veri yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Veri yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );
   }
-
-  // Backend'den gelen gun bazli kirilimi son 7 gun icin yeniden sekillendir
-  const weeklyData = useMemo(() => {
-    const today = startOfDay(new Date());
-    return Array.from({ length: 7 }).map((_, i) => {
-      const date = subDays(today, 6 - i);
-      const dateStr = format(date, "yyyy-MM-dd");
-      const day = (days ?? []).find((d) => d.date === dateStr);
-      return {
-        day: format(date, "EEE", { locale: tr }),
-        soru: day?.questionCount ?? 0,
-        dogru: day?.correctCount ?? 0,
-      };
-    });
-  }, [days]);
 
   return (
     <Card>

@@ -1,18 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStudentContext } from "@/lib/student-context";
+import { ExamTrendsChart } from "@/components/exams/exam-trends-chart";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { Users, TrendingUp, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import type { ExamType } from "@/lib/types";
 
 export default function TeacherDashboardPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const { studentsWithStats } = useStudentContext();
+  const {
+    studentsWithStats,
+    isLoading: studentsLoading,
+    isError: studentsError,
+    error: studentsErr,
+    refetch: refetchStudents,
+  } = useStudentContext();
+  const [trendExamType, setTrendExamType] = useState<ExamType>("TYT");
 
   useEffect(() => {
     if (!isLoading && user && user.role === "student") {
@@ -45,6 +57,35 @@ export default function TeacherDashboardPage() {
         </p>
       </div>
 
+      {studentsError ? (
+        <Card>
+          <CardContent>
+            <ErrorState
+              error={studentsErr}
+              title="Ogrenci verileri yuklenemedi"
+              onRetry={() => refetchStudents()}
+            />
+          </CardContent>
+        </Card>
+      ) : studentsLoading ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="mt-2 h-8 w-12" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Summary Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -184,6 +225,34 @@ export default function TeacherDashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tum Ogrenci Net Trend Karsilastirmasi (BACKEND #7) */}
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base font-semibold">
+              Ogrenci Net Trend Karsilastirmasi
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Tum ogrencilerin deneme net gelisimi
+            </p>
+          </div>
+          <Tabs
+            value={trendExamType}
+            onValueChange={(v) => setTrendExamType(v as ExamType)}
+          >
+            <TabsList className="h-8">
+              <TabsTrigger value="TYT" className="px-3 text-xs">TYT</TabsTrigger>
+              <TabsTrigger value="AYT" className="px-3 text-xs">AYT</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardHeader>
+        <CardContent>
+          <ExamTrendsChart examType={trendExamType} />
+        </CardContent>
+      </Card>
+        </>
+      )}
     </div>
   );
 }

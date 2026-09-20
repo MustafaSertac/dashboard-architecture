@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { format, addDays, subDays, isToday } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
+import { format, addDays, subDays, isToday, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useTasksByRange, useCompleteTask, useLogStudy } from "@/modules/study-tasks/hooks/useStudyTasks";
+import { qk } from "@/lib/query/keys";
+import { toast } from "sonner";
+import type { Task } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { ChevronLeft, ChevronRight, Clock, BookOpen, Target, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,30 +28,46 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [tempValues, setTempValues] = useState<{
-    completedQuestions: number;
-    hoursStudied: number;
-  }>({ completedQuestions: 0, hoursStudied: 0 });
+    correct: number;
+    wrong: number;
+    empty: number;
+    hours: number;
+  }>({ correct: 0, wrong: 0, empty: 0, hours: 0 });
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
-  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+  // Günlük sekmesi seçili günü gösterir; "önümüzdeki hafta" bölümü için
+  // seçili günden itibaren 7 günlük kayan pencereyi çekiyoruz.
+  const rangeStart = format(selectedDate, "yyyy-MM-dd");
+  const rangeEnd = format(addDays(selectedDate, 6), "yyyy-MM-dd");
+  const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
-    dateStr,
-    dateStr
+    rangeStart,
+    rangeEnd
   );
 
   const completeTask = useCompleteTask(studentId);
   const logStudy = useLogStudy(studentId);
-  const dailyTasks = (tasks ?? []).map((task) => ({
-    id: task.id,
-    subject: task.subject,
-    topic: task.topic,
-    targetQuestions: task.questionCount,
-    completedQuestions: task.completedQuestions || 0,
-    hoursStudied: task.hoursStudied || 0,
-    isCompleted: task.status === "completed",
-    correctAnswers: task.correctAnswers,
-    wrongAnswers: task.wrongAnswers,
-  }));
+  const queryClient = useQueryClient();
+  const rangeKey = qk.tasks.byRange(studentId, rangeStart, rangeEnd);
+  const dailyTasks = (tasks ?? [])
+    .filter((task) => task.dueDate === dateStr)
+    .map((task) => ({
+      id: task.id,
+      subject: task.subject,
+      topic: task.topic,
+      targetQuestions: task.questionCount,
+      completedQuestions: task.completedQuestions || 0,
+      hoursStudied: task.hoursStudied || 0,
+      isCompleted: task.status === "completed",
+      correctAnswers: task.correctAnswers,
+      wrongAnswers: task.wrongAnswers,
+      emptyAnswers: task.emptyAnswers,
+    }));
+
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const upcomingWeekTasks = (tasks ?? [])
+    .filter((task) => task.dueDate > todayStr && task.dueDate !== dateStr)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
   const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1));
   const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
@@ -55,27 +76,75 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
   const handleStartEdit = (task: typeof dailyTasks[number]) => {
     setEditingTaskId(task.id);
     setTempValues({
-      completedQuestions: task.completedQuestions,
-      hoursStudied: task.hoursStudied,
+      correct: task.correctAnswers || 0,
+      wrong: task.wrongAnswers || 0,
+      empty: task.emptyAnswers || 0,
+      hours: task.hoursStudied || 0,
     });
   };
 
   const handleSaveEdit = (taskId: string) => {
-    // Inline edit: kullanici cozulen soru sayisi + calisma saati girer.
-    // Backend logStudy endpoint'i hours + dogru/yanlis/bos bekler ve
-    // isCompleted hedefi kendisi hesaplar.
-    logStudy.mutate({
-      taskId,
-      hours: tempValues.hoursStudied,
-      correctCount: tempValues.completedQuestions,
-      wrongCount: 0,
-      emptyCount: 0,
-    });
+    // Inline edit: kullanici dogru/yanlis/bos soru sayisi + calisma saati girer.
+    // Backend logStudy endpoint'i bu degerleri ayri ayri bekler.
+    const previous = queryClient.getQueryData<Task[]>(rangeKey);
+    const total =
+      tempValues.correct + tempValues.wrong + tempValues.empty;
+
+    // 1) Kullanicinin girdigine gore aninda (optimistic) guncelle
+    queryClient.setQueryData<Task[]>(rangeKey, (old) =>
+      (old ?? []).map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              correctAnswers: tempValues.correct,
+              wrongAnswers: tempValues.wrong,
+              emptyAnswers: tempValues.empty,
+              completedQuestions: total,
+              hoursStudied: tempValues.hours,
+            }
+          : t
+      )
+    );
     setEditingTaskId(null);
+
+    logStudy.mutate(
+      {
+        taskId,
+        hours: tempValues.hours,
+        correctCount: tempValues.correct,
+        wrongCount: tempValues.wrong,
+        emptyCount: tempValues.empty,
+      },
+      {
+        // 3) Sunucu yanitina gore guncelle
+        onSuccess: (updated) => {
+          queryClient.setQueryData<Task[]>(rangeKey, (old) =>
+            (old ?? []).map((t) => (t.id === taskId ? updated : t))
+          );
+          toast.success("Görev güncellendi");
+        },
+        // 2) Hatayi kullaniciya goster ve optimistic guncellemeyi geri al
+        onError: (err: unknown) => {
+          queryClient.setQueryData(rangeKey, previous);
+          const msg =
+            err instanceof Error ? err.message : "Görev güncellenemedi";
+          toast.error(msg);
+        },
+      }
+    );
   };
 
   const handleToggleComplete = (task: typeof dailyTasks[number]) => {
-    completeTask.mutate({ taskId: task.id });
+    completeTask.mutate(
+      { taskId: task.id },
+      {
+        onError: (err: unknown) => {
+          const msg =
+            err instanceof Error ? err.message : "Görev güncellenemedi";
+          toast.error(msg);
+        },
+      }
+    );
   };
 
   const totalTarget = dailyTasks.reduce((sum, t) => sum + t.targetQuestions, 0);
@@ -159,13 +228,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
         ) : isError ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-sm text-destructive mb-2">Görevler yuklenemedi</p>
-              <button
-                onClick={() => refetch()}
-                className="text-sm text-primary hover:underline"
-              >
-                Tekrar dene
-              </button>
+              <ErrorState error={error} title="Görevler yuklenemedi" onRetry={() => refetch()} />
             </CardContent>
           </Card>
         ) : dailyTasks.length === 0 ? (
@@ -209,19 +272,53 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                       <div className="flex flex-wrap items-end gap-3">
                         <div className="space-y-1">
                           <label className="text-xs text-muted-foreground">
-                            Çözülen Soru
+                            Doğru
                           </label>
                           <Input
                             type="number"
                             min={0}
-                            value={tempValues.completedQuestions}
+                            value={tempValues.correct}
                             onChange={(e) =>
                               setTempValues((prev) => ({
                                 ...prev,
-                                completedQuestions: parseInt(e.target.value) || 0,
+                                correct: parseInt(e.target.value) || 0,
                               }))
                             }
-                            className="h-8 w-24"
+                            className="h-8 w-20"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">
+                            Yanlış
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={tempValues.wrong}
+                            onChange={(e) =>
+                              setTempValues((prev) => ({
+                                ...prev,
+                                wrong: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                            className="h-8 w-20"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">
+                            Boş
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={tempValues.empty}
+                            onChange={(e) =>
+                              setTempValues((prev) => ({
+                                ...prev,
+                                empty: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                            className="h-8 w-20"
                           />
                         </div>
                         <div className="space-y-1">
@@ -232,11 +329,11 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                             type="number"
                             min={0}
                             step={0.5}
-                            value={tempValues.hoursStudied}
+                            value={tempValues.hours}
                             onChange={(e) =>
                               setTempValues((prev) => ({
                                 ...prev,
-                                hoursStudied: parseFloat(e.target.value) || 0,
+                                hours: parseFloat(e.target.value) || 0,
                               }))
                             }
                             className="h-8 w-24"
@@ -269,6 +366,17 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                           <BookOpen className="size-4 text-muted-foreground" />
                           <span>Çözülen: {task.completedQuestions}</span>
                         </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <span className="text-success">
+                            D: {task.correctAnswers}
+                          </span>
+                          <span className="text-destructive">
+                            Y: {task.wrongAnswers}
+                          </span>
+                          <span className="text-muted-foreground">
+                            B: {task.emptyAnswers}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-1.5 text-sm">
                           <Clock className="size-4 text-muted-foreground" />
                           <span>Saat: {task.hoursStudied}</span>
@@ -300,6 +408,35 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
           ))
         )}
       </div>
+
+      {/* Önümüzdeki Hafta Görevleri */}
+      {!isLoading && !isError && upcomingWeekTasks.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Önümüzdeki Görevler
+          </h2>
+          {upcomingWeekTasks.map((task) => (
+            <Card key={task.id}>
+              <CardContent className="flex items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">
+                    {task.subject}
+                  </div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {task.topic}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {format(parseISO(task.dueDate), "d MMMM, EEEE", { locale: tr })}
+                  </div>
+                </div>
+                <Badge variant={task.status === "completed" ? "default" : "secondary"}>
+                  {task.questionCount} soru
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

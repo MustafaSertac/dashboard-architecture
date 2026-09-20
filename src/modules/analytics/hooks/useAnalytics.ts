@@ -17,23 +17,33 @@ export function useWeeklyAnalytics(studentId: string, weekStart: string) {
 export function useMonthlyAnalytics(
   studentId: string,
   year: number,
-  month: number
+  month: number,
+  perSubject: boolean = true
 ) {
   return useQuery({
     queryKey: qk.analytics.monthly(studentId, year, month),
     queryFn: async () => {
-      const dto = await analyticsService.monthly(studentId, year, month);
+      const dto = await analyticsService.monthly(
+        studentId,
+        year,
+        month,
+        perSubject
+      );
       return mapMonthlyAnalytics(dto);
     },
     enabled: !!studentId,
   });
 }
 
-export function useYearlyAnalytics(studentId: string, year: number) {
+export function useYearlyAnalytics(
+  studentId: string,
+  year: number,
+  perSubject: boolean = true
+) {
   return useQuery({
     queryKey: qk.analytics.yearly(studentId, year),
     queryFn: async () => {
-      const dto = await analyticsService.yearly(studentId, year);
+      const dto = await analyticsService.yearly(studentId, year, perSubject);
       return mapMonthlyAnalytics(dto);
     },
     enabled: !!studentId,

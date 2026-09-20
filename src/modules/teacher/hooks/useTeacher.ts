@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query/keys";
 import { teacherService } from "@/modules/teacher/services/teacher.service";
 import type { TeacherStudent } from "@/modules/teacher/types/teacher.types";
@@ -8,7 +8,6 @@ export function useTeacherStudents(teacherId: string | undefined | null) {
     queryKey: qk.teacherStudents(teacherId ?? "anonymous"),
     queryFn: async () => {
       const dtos = await teacherService.listByTeacher(teacherId ?? "");
-      // DTO -> UI tipi (User + istatistikler)
       return dtos.map(
         (dto) =>
           ({
@@ -26,5 +25,29 @@ export function useTeacherStudents(teacherId: string | undefined | null) {
       );
     },
     enabled: !!teacherId,
+  });
+}
+
+export function useAddStudent(teacherId: string | undefined | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (studentId: string) =>
+      teacherService.addStudent(teacherId ?? "", studentId),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: qk.teacherStudents(teacherId ?? "anonymous"),
+      }),
+  });
+}
+
+export function useRemoveStudent(teacherId: string | undefined | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (studentId: string) =>
+      teacherService.removeStudent(teacherId ?? "", studentId),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: qk.teacherStudents(teacherId ?? "anonymous"),
+      }),
   });
 }

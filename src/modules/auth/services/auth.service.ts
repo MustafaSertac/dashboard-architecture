@@ -6,7 +6,10 @@ import type {
   LoginRequest,
   StudentRegisterRequest,
   TeacherRegisterRequest,
-  ForgotPasswordRequest,
+  ForgotPasswordRequestReq,
+  ForgotPasswordVerifyReq,
+  ForgotPasswordVerifyResponse,
+  ForgotPasswordResetReq,
   RefreshTokenRequest,
   LogoutRequest,
   UpdateProfileRequest,
@@ -37,8 +40,28 @@ export const authService = {
     await apiClient.post(endpoints.auth.logout, data);
   },
 
-  async forgotPassword(data: ForgotPasswordRequest): Promise<{ message: string }> {
-    const res = await apiClient.post(endpoints.auth.forgotPassword, data);
+  // BACKEND #9 (Dusuk) TAMAMLANDI: 3-adimli sifir akisi.
+  async forgotPasswordRequest(
+    data: ForgotPasswordRequestReq
+  ): Promise<{ message: string }> {
+    const res = await apiClient.post(
+      endpoints.auth.forgotPasswordRequest,
+      data
+    );
+    return res.data.data;
+  },
+
+  async forgotPasswordVerify(
+    data: ForgotPasswordVerifyReq
+  ): Promise<ForgotPasswordVerifyResponse> {
+    const res = await apiClient.post(endpoints.auth.forgotPasswordVerify, data);
+    return res.data.data;
+  },
+
+  async forgotPasswordReset(
+    data: ForgotPasswordResetReq
+  ): Promise<{ message: string }> {
+    const res = await apiClient.post(endpoints.auth.forgotPasswordReset, data);
     return res.data.data;
   },
 

@@ -9,9 +9,11 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string, role: UiUserRole) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string, phoneNumber: string, role: UiUserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  forgotPassword: (email: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyResetToken: (token: string) => Promise<boolean>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   switchRole: (role: UiUserRole) => void;
 }
 

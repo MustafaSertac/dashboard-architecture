@@ -1,5 +1,10 @@
 export interface StudyTaskDTO {
   taskId: string;
+  studentId: string;
+  teacherId?: string;
+  dueDate: string;
+  createdAt: string;
+  updatedAt?: string;
   lessonId: string;
   lessonTitle: string;
   topicId: string;
@@ -19,16 +24,6 @@ export interface StudyTaskDTO {
   successRate: number;
   isCompleted: boolean;
   isTargetAchieved: boolean;
-  // BACKEND EKSIK #1 (Kritik): dueDate alani StudyTaskDTO'da YOK.
-  // Backend BackendTalep.md talep #1 ve #4'te listelendi.
-  // Frontend dueDate'i varmis gibi implement etti; backend ekleyene kadar
-  // service/hook katmaninda context-date fallback kullaniliyor.
-  dueDate?: string;
-  // BACKEND EKSIK #4 (Yuksek): teacherId/studentId/createdAt/updatedAt alanlari YOK.
-  teacherId?: string;
-  studentId?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface CreateTaskRequest {
@@ -76,4 +71,21 @@ export interface LogTaskStudyRequest {
   correctCount: number;
   wrongCount: number;
   emptyCount: number;
+}
+
+// BACKEND #10 (Dusuk) TAMAMLANDI: focus session tracking.
+export interface FocusSessionDTO {
+  id: string;
+  taskId: string;
+  studentId: string;
+  date: string;
+  durationMinutes: number;
+  startedAt?: string;
+  endedAt?: string;
+}
+
+export interface CreateFocusSessionRequest {
+  durationMinutes: number;
+  startedAt?: string;
+  endedAt?: string;
 }

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +54,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
   const startDate = format(startOfMonth(now), "yyyy-MM-dd");
   const endDate = format(endOfMonth(now), "yyyy-MM-dd");
 
-  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+  const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
     startDate,
     endDate
@@ -121,13 +122,7 @@ export function TaskList({ studentId, filterStatus, onEditTask }: TaskListProps)
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-sm text-destructive mb-2">Görevler yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Görevler yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );

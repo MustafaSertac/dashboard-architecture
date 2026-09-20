@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function TodayTasksCard() {
   const { user } = useAuth();
-  const { data: tasks, isLoading, isError, refetch } = useTodayTasks(user?.id ?? "");
+  const { data: tasks, isLoading, isError, error, refetch } = useTodayTasks(user?.id ?? "");
 
   if (isLoading) {
     return (
@@ -35,13 +36,7 @@ export function TodayTasksCard() {
           <CardTitle className="text-base font-semibold">Bugünün Görevleri</CardTitle>
         </CardHeader>
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-destructive mb-2">Görevler yüklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Görevler yüklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );

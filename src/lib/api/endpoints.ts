@@ -2,10 +2,12 @@ export const endpoints = {
   auth: {
     login: "/auth/login",
     registerStudent: "/auth/student",
-    // BACKEND HATA H-1: "teachter" yazimi backend kaynak kodunda boyle.
-    // Backend /auth/teacher olarak duzeltilene kadar bu URL kullanilir.
-    registerTeacher: "/auth/teachter",
-    forgotPassword: "/auth/forgot-password",
+    // BACKEND H-1 DUZELTILDI: /auth/teacher olarak duzeltildi.
+    registerTeacher: "/auth/teacher",
+    // BACKEND #9 (Dusuk) TAMAMLANDI: email dogrulamali 3-adimli sifir akisi.
+    forgotPasswordRequest: "/auth/forgot-password/request",
+    forgotPasswordVerify: "/auth/forgot-password/verify",
+    forgotPasswordReset: "/auth/forgot-password/reset",
     refreshToken: "/auth/refresh-token",
     logout: "/auth/logout",
     profile: (userId: string) => `/auth/profiles/${userId}`,
@@ -38,8 +40,7 @@ export const endpoints = {
     list: "/exams",
     detail: (id: string) => `/exams/${id}`,
     trends: "/exams/trends",
-    // BACKEND EKSIK #7 (Orta): Toplu trend endpoint'i YOK.
-    // Tek tek /exams/trends cagrilmaya devam eder (N+1 kabul).
+    // BACKEND #7 (Orta) TAMAMLANDI: toplu trend endpoint'i.
     trendsAll: "/exams/trends/all",
     create: "/exams",
     update: (id: string) => `/exams/${id}`,
@@ -55,20 +56,24 @@ export const endpoints = {
     update: "/study-tasks/update",
     delete: "/study-tasks",
     complete: "/study-tasks/complete",
-    // BACKEND EKSIK #6 (Orta): Toplu complete endpoint'i YOK.
-    // Stub: hizmet hook'u once bunu cagistir, 404/405 gelirse per-task complete'e duser.
+    // BACKEND #6 (Orta) TAMAMLANDI: toplu complete endpoint'i.
     completeBatch: "/study-tasks/complete/batch",
     logStudy: "/study-tasks/log-study",
+    // BACKEND #10 (Dusuk) TAMAMLANDI: focus session tracking.
+    focusSession: (taskId: string) => `/study-tasks/${taskId}/focus-session`,
+    focusSessions: (taskId: string) =>
+      `/study-tasks/${taskId}/focus-sessions`,
   },
 
-  // BACKEND EKSIK #2 (Yuksek): Ogretmen-Ogrenci liste endpoint'i YOK.
-  // Stub: once /students?teacherId= denenir, 404 gelirse mock fallback'e duser.
+  // BACKEND #2 (Yuksek) TAMAMLANDI: GET /teachers/{teacherId}/students.
   students: {
-    listByTeacher: "/students",
+    listByTeacher: (teacherId: string) => `/teachers/${teacherId}/students`,
+    add: (teacherId: string) => `/teachers/${teacherId}/students`,
+    remove: (teacherId: string, studentId: string) =>
+      `/teachers/${teacherId}/students/${studentId}`,
   },
 
-  // BACKEND EKSIK #5 (Orta): Not/Feedback endpoint'i YOK.
-  // Stub: once /students/{id}/notes denenir, 404 gelirse simulated setTimeout fallback.
+  // BACKEND #5 (Orta) TAMAMLANDI: Not/Feedback endpoint'i.
   notes: {
     list: (studentId: string) => `/students/${studentId}/notes`,
     create: (studentId: string) => `/students/${studentId}/notes`,

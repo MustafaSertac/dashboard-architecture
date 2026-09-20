@@ -1,26 +1,8 @@
 import type { ExamResult, SubjectResult, TopicDetail } from "@/lib/types";
-import type { ExamDTO, ExamSummaryDTO, CreateExamRequest, CreateExamSectionRequest, CreateExamSectionLessonRequest } from "@/modules/exams/types/exam.types";
+import type { ExamDTO, ExamSummaryDTO, CreateExamRequest, ExamSectionRequest, ExamLessonRequest } from "@/modules/exams/types/exam.types";
 import { UiExamType, examCodeToExamType, examTypeToExamCode, ExamStatus } from "@/types/common";
-import { lessonCodeFromUiName, canonicalLessonName } from "@/modules/lessons/utils/lesson-name-map";
+import { canonicalLessonName } from "@/modules/lessons/utils/lesson-name-map";
 import { ExamType } from "@/lib/types";
-
-const TYT_SECTION_TEMPLATE: Record<string, number[]> = {
-  "Türkçe": [10],
-  "Sosyal Bilimler": [16, 17, 18, 19],
-  "Temel Matematik": [11],
-  "Fen Bilimleri": [13, 14, 15],
-};
-
-const AYT_SECTION_TEMPLATE: Record<string, number[]> = {
-  "Türk Dili ve Edebiyatı – Sosyal Bilimler-1": [10, 16, 17],
-  "Sosyal Bilimler-2": [16, 17, 18, 19],
-  "Matematik": [11, 12],
-  "Fen Bilimleri": [13, 14, 15],
-};
-
-function getSectionTemplate(examCode: number): Record<string, number[]> {
-  return examCode === 10 ? TYT_SECTION_TEMPLATE : AYT_SECTION_TEMPLATE;
-}
 
 function getDefaultDuration(examCode: number): number {
   return examCode === 10 ? 135 : 180;
@@ -36,10 +18,8 @@ export function mapExamDtoToUi(dto: ExamDTO | ExamSummaryDTO): ExamResult {
           (tr) => ({
             topicName: tr.name,
             subtopicName: undefined,
-            // BACKEND EKSIK #3 (Yuksek): correct ve questionNumbers DTO'da yok.
-            // Backend tamamlanana kadar 0 / [] fallback kullanir.
-            questionNumbers: tr.questionNumbers ?? [],
-            correct: tr.correct ?? 0,
+            questionNumbers: tr.questionNumbers,
+            correct: tr.correct,
             wrong: tr.wrong,
             empty: tr.blank,
           })
@@ -80,6 +60,8 @@ export function mapUiExamFormToCreateRequest(params: {
   date: string;
   subjectResults: {
     subjectName: string;
+    sectionName: string;
+    lessonCode: number;
     questionCount: number;
     correct: number;
     wrong: number;
@@ -96,27 +78,21 @@ export function mapUiExamFormToCreateRequest(params: {
   durationMinutes?: number;
   notes?: string;
 }): CreateExamRequest {
-  const examCode: 10 | 11 = examTypeToExamCode(params.examType);
-  const template = getSectionTemplate(examCode);
+  const examCode = examTypeToExamCode(params.examType);
 
-  const sectionMap = new Map<string, CreateExamSectionLessonRequest[]>();
+  const sectionMap = new Map<string, ExamLessonRequest[]>();
+  const sectionOrder: string[] = [];
 
   for (const sr of params.subjectResults) {
-    const lessonCode = lessonCodeFromUiName(sr.subjectName);
-    if (lessonCode === undefined) continue;
-
-    let sectionName: string | undefined;
-    for (const [secName, codes] of Object.entries(template)) {
-      if (codes.includes(lessonCode)) {
-        sectionName = secName;
-        break;
-      }
+    const sectionName = sr.sectionName;
+    if (!sectionMap.has(sectionName)) {
+      sectionMap.set(sectionName, []);
+      sectionOrder.push(sectionName);
     }
-    if (!sectionName) continue;
 
-    const lessonEntry: CreateExamSectionLessonRequest = {
-      lessonCode,
-      name: canonicalLessonName(lessonCode),
+    const lessonEntry: ExamLessonRequest = {
+      lessonCode: sr.lessonCode,
+      name: canonicalLessonName(sr.lessonCode),
       correct: sr.correct,
       wrong: sr.wrong,
       blank: sr.empty,
@@ -125,8 +101,6 @@ export function mapUiExamFormToCreateRequest(params: {
         .map((td) => ({
           topicCode: 0,
           name: td.topicName,
-          // BACKEND EKSIK #3: correct ve questionNumbers gonderiyoruz;
-          // backend tanimiyorsa yok sayilir (forward-compatible).
           correct: td.correct,
           wrong: td.wrong,
           blank: td.empty,
@@ -134,19 +108,22 @@ export function mapUiExamFormToCreateRequest(params: {
         })),
     };
 
-    if (!sectionMap.has(sectionName)) {
-      sectionMap.set(sectionName, []);
-    }
     sectionMap.get(sectionName)!.push(lessonEntry);
   }
 
-  const sections: CreateExamSectionRequest[] = [];
-  for (const [name, lessons] of sectionMap) {
+  const sections: ExamSectionRequest[] = sectionOrder.map((name) => {
+    const lessons = sectionMap.get(name)!;
     const secCorrect = lessons.reduce((s, l) => s + l.correct, 0);
     const secWrong = lessons.reduce((s, l) => s + l.wrong, 0);
     const secBlank = lessons.reduce((s, l) => s + l.blank, 0);
-    sections.push({ name, correct: secCorrect, wrong: secWrong, blank: secBlank, lessons });
-  }
+    return {
+      name,
+      correct: secCorrect,
+      wrong: secWrong,
+      blank: secBlank,
+      lessons,
+    };
+  });
 
   return {
     studentId: params.studentId,

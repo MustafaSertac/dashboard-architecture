@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { TYT_SUBJECTS, TOPICS_BY_SUBJECT } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import {
   useCreateTask,
@@ -31,6 +31,7 @@ import {
 } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { mapUiTaskFormToCreateRequest } from "@/modules/study-tasks/mappers/study-task.mapper";
 import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
+import { useLessons, useUnits, useTopics } from "@/modules/lessons/hooks/useLessons";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface TaskModalProps {
@@ -50,12 +51,20 @@ export function TaskModal({
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [subject, setSubject] = useState("");
-  const [topic, setTopic] = useState("");
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [selectedUnitId, setSelectedUnitId] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
   const [questionCount, setQuestionCount] = useState("");
   const [studentId, setStudentId] = useState(selectedStudentId);
 
-  // Teacher/admin ise ogrenci listesini hook'tan al; student ise sadece kendisi.
+  const { data: lessons, isLoading: lessonsLoading } = useLessons();
+  const { data: units, isLoading: unitsLoading } = useUnits(selectedLessonId);
+  const { data: topics, isLoading: topicsLoading } = useTopics(selectedUnitId);
+
+  const selectedLesson = lessons?.find((l) => l.id === selectedLessonId);
+  const selectedUnit = units?.find((u) => u.id === selectedUnitId);
+  const selectedTopic = topics?.find((t) => t.id === selectedTopicId);
+
   const { data: teacherStudents } = useTeacherStudents(
     isTeacher ? user?.id : undefined
   );
@@ -69,7 +78,6 @@ export function TaskModal({
       ? [{ id: user.id, name: user.name }]
       : [];
 
-  // Editing task verisini cek: bu ayin range'inden bugun+upcoming'ten dene
   const now = new Date();
   const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
@@ -100,8 +108,6 @@ export function TaskModal({
   useEffect(() => {
     if (editingTask) {
       setDate(editingTask.dueDate);
-      setSubject(editingTask.subject);
-      setTopic(editingTask.topic);
       setQuestionCount(editingTask.questionCount.toString());
       setStudentId(editingTask.studentId);
     } else {
@@ -113,20 +119,32 @@ export function TaskModal({
 
   const resetForm = () => {
     setDate(new Date().toISOString().split("T")[0]);
-    setSubject("");
-    setTopic("");
+    setSelectedLessonId("");
+    setSelectedUnitId("");
+    setSelectedTopicId("");
     setQuestionCount("");
   };
 
-  const availableTopics = subject ? TOPICS_BY_SUBJECT[subject] || [] : [];
+  const handleLessonChange = (lessonId: string) => {
+    setSelectedLessonId(lessonId);
+    setSelectedUnitId("");
+    setSelectedTopicId("");
+  };
+
+  const handleUnitChange = (unitId: string) => {
+    setSelectedUnitId(unitId);
+    setSelectedTopicId("");
+  };
 
   const handleSubmit = async () => {
-    if (!date || !subject || !topic || !questionCount) {
+    if (!date || !selectedLessonId || !selectedTopicId || !questionCount) {
       toast.error("Lutfen tum alanlari doldurun");
       return;
     }
 
     const targetStudentId = studentId || selectedStudentId;
+    const subject = selectedLesson?.name ?? "";
+    const topic = selectedTopic?.name ?? "";
 
     if (editingTask) {
       updateTask.mutate(
@@ -134,8 +152,9 @@ export function TaskModal({
           taskId: editingTask.id,
           studentId: targetStudentId,
           dueDate: date,
-          // UpdateTaskRequest optional alanlar; backend title/timings'i kendisi turetebilir
-          // ama guvenli olmak icin subject/topic'i de gonderelim.
+          lessonId: selectedLessonId,
+          unitId: selectedUnitId || undefined,
+          topicId: selectedTopicId,
           lessonTitle: subject,
           topicTitle: topic,
           targetQuestions: parseInt(questionCount),
@@ -159,6 +178,9 @@ export function TaskModal({
         topic,
         questionCount: parseInt(questionCount),
         dueDate: date,
+        lessonId: selectedLessonId,
+        unitId: selectedUnitId || undefined,
+        topicId: selectedTopicId,
       });
       createTask.mutate(req, {
         onSuccess: () => {
@@ -218,45 +240,74 @@ export function TaskModal({
           </div>
 
           <div>
-            <Label htmlFor="subject">Ders</Label>
-            <Select
-              value={subject}
-              onValueChange={(v) => {
-                setSubject(v);
-                setTopic("");
-              }}
-            >
-              <SelectTrigger id="subject">
-                <SelectValue placeholder="Ders seç" />
-              </SelectTrigger>
-              <SelectContent>
-                {TYT_SUBJECTS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="lesson">Ders</Label>
+            {lessonsLoading ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select
+                value={selectedLessonId}
+                onValueChange={handleLessonChange}
+              >
+                <SelectTrigger id="lesson">
+                  <SelectValue placeholder="Ders seç" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(lessons ?? []).map((lesson) => (
+                    <SelectItem key={lesson.id} value={lesson.id}>
+                      {lesson.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="unit">Ünite</Label>
+            {unitsLoading ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select
+                value={selectedUnitId}
+                onValueChange={handleUnitChange}
+                disabled={!selectedLessonId}
+              >
+                <SelectTrigger id="unit">
+                  <SelectValue placeholder={selectedLessonId ? "Ünite seç" : "Önce ders seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(units ?? []).map((unit) => (
+                    <SelectItem key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div>
             <Label htmlFor="topic">Konu</Label>
-            <Select
-              value={topic}
-              onValueChange={setTopic}
-              disabled={!subject}
-            >
-              <SelectTrigger id="topic">
-                <SelectValue placeholder={subject ? "Konu seç" : "Önce ders seçin"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableTopics.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {topicsLoading ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select
+                value={selectedTopicId}
+                onValueChange={setSelectedTopicId}
+                disabled={!selectedUnitId}
+              >
+                <SelectTrigger id="topic">
+                  <SelectValue placeholder={selectedUnitId ? "Konu seç" : "Önce ünite seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(topics ?? []).map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div>

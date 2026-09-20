@@ -3,12 +3,36 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStudentContext } from "@/lib/student-context";
+import { useAuth } from "@/lib/auth-context";
+import { useAddStudent, useRemoveStudent } from "@/modules/teacher/hooks/useTeacher";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import {
   Users,
   Search,
@@ -17,14 +41,108 @@ import {
   BookOpen,
   TrendingUp,
   ArrowRight,
+  UserPlus,
+  UserMinus,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function StudentList() {
-  const { studentsWithStats, setSelectedStudent } = useStudentContext();
+  const {
+    studentsWithStats,
+    setSelectedStudent,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useStudentContext();
+  const { user } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newStudentId, setNewStudentId] = useState("");
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+
+  const addStudent = useAddStudent(user?.id);
+  const removeStudent = useRemoveStudent(user?.id);
+
+  const handleAddStudent = () => {
+    if (!newStudentId.trim()) {
+      toast.error("Ogrenci ID girin");
+      return;
+    }
+    addStudent.mutate(newStudentId.trim(), {
+      onSuccess: () => {
+        toast.success("Ogrenci eklendi");
+        setAddDialogOpen(false);
+        setNewStudentId("");
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Ogrenci eklenemedi";
+        toast.error(msg);
+      },
+    });
+  };
+
+  const handleRemoveStudent = () => {
+    if (!removeTarget) return;
+    removeStudent.mutate(removeTarget, {
+      onSuccess: () => {
+        toast.success("Ogrenci kaldirildi");
+        setRemoveTarget(null);
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Ogrenci kaldirilamadi";
+        toast.error(msg);
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-64" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <Skeleton className="mt-2 h-6 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="mt-3 h-2 w-full" />
+                <Skeleton className="mt-2 h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent>
+          <ErrorState
+            error={error}
+            title="Ogrenci listesi yuklenemedi"
+            onRetry={() => refetch()}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   const filteredStudents = studentsWithStats.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -57,14 +175,20 @@ export function StudentList() {
             {studentsWithStats.length} ogrenci atanmis
           </p>
         </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Ogrenci ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Ogrenci ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+            <UserPlus className="mr-2 size-4" />
+            Ekle
+          </Button>
         </div>
       </div>
 
@@ -161,7 +285,17 @@ export function StudentList() {
                         <p className="text-sm text-muted-foreground">{student.email}</p>
                       </div>
                     </div>
-                    <Badge variant={progressBadge.variant}>{progressBadge.label}</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={progressBadge.variant}>{progressBadge.label}</Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive"
+                        onClick={() => setRemoveTarget(student.id)}
+                      >
+                        <UserMinus className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -214,6 +348,56 @@ export function StudentList() {
           })}
         </div>
       )}
+
+      {/* Add Student Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ogrenci Ekle</DialogTitle>
+            <DialogDescription>
+              Mevcut bir ogrenciyi ogretmen listesine ekleyin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="newStudentId">Ogrenci ID</Label>
+            <Input
+              id="newStudentId"
+              placeholder="Ogrenci ID girin"
+              value={newStudentId}
+              onChange={(e) => setNewStudentId(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              Iptal
+            </Button>
+            <Button onClick={handleAddStudent} disabled={addStudent.isPending}>
+              {addStudent.isPending ? "Ekleniyor..." : "Ekle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Student AlertDialog */}
+      <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ogrenciyi Kaldir</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu ogrenciyi listenizden kaldirmak istediginize emin misiniz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Iptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveStudent}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removeStudent.isPending ? "Kaldiriliyor..." : "Kaldir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

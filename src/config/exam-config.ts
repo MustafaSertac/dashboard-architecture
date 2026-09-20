@@ -379,10 +379,10 @@ const TYT_DIN: SubjectConfig = {
   ],
 };
 
-// AYT Matematik (40 soru)
+// AYT Matematik (30 soru)
 const AYT_MATEMATIK: SubjectConfig = {
   name: "Matematik",
-  questionCount: 40,
+  questionCount: 30,
   topics: [
     {
       name: "Fonksiyonlar",
@@ -797,9 +797,9 @@ const AYT_EDEBIYAT: SubjectConfig = {
   ],
 };
 
-// AYT Tarih (10 soru)
-const AYT_TARIH: SubjectConfig = {
-  name: "Tarih",
+// AYT Tarih-1 (10 soru)
+const AYT_TARIH_1: SubjectConfig = {
+  name: "Tarih-1",
   questionCount: 10,
   topics: [
     {
@@ -820,6 +820,14 @@ const AYT_TARIH: SubjectConfig = {
         "Selçuklular",
       ],
     },
+  ],
+};
+
+// AYT Tarih-2 (11 soru)
+const AYT_TARIH_2: SubjectConfig = {
+  name: "Tarih-2",
+  questionCount: 11,
+  topics: [
     {
       name: "Osmanlı Tarihi",
       subtopics: [
@@ -845,9 +853,9 @@ const AYT_TARIH: SubjectConfig = {
   ],
 };
 
-// AYT Coğrafya (6 soru)
-const AYT_COGRAFYA: SubjectConfig = {
-  name: "Coğrafya",
+// AYT Coğrafya-1 (6 soru)
+const AYT_COGRAFYA_1: SubjectConfig = {
+  name: "Coğrafya-1",
   questionCount: 6,
   topics: [
     {
@@ -871,6 +879,14 @@ const AYT_COGRAFYA: SubjectConfig = {
         "Ticaret",
       ],
     },
+  ],
+};
+
+// AYT Coğrafya-2 (11 soru)
+const AYT_COGRAFYA_2: SubjectConfig = {
+  name: "Coğrafya-2",
+  questionCount: 11,
+  topics: [
     {
       name: "Bölgesel Coğrafya",
       subtopics: [
@@ -886,6 +902,39 @@ const AYT_COGRAFYA: SubjectConfig = {
         "Çevre Sorunları",
         "Doğal Afetler",
       ],
+    },
+  ],
+};
+
+// AYT Geometri (10 soru)
+const AYT_GEOMETRI: SubjectConfig = {
+  name: "Geometri",
+  questionCount: 10,
+  topics: [
+    {
+      name: "Analitik Geometri",
+      subtopics: ["Doğru Denklemi", "Çember", "Konikler"],
+    },
+    {
+      name: "Uzay Geometri",
+      subtopics: [
+        "Katı Cisimler",
+        "Prizmalar",
+        "Piramitler",
+        "Silindir-Koni-Küre",
+      ],
+    },
+    {
+      name: "Trigonometri",
+      subtopics: [
+        "Trigonometrik Oranlar",
+        "Sinüs-Kosinüs Teoremi",
+        "Toplam-Fark Formülleri",
+      ],
+    },
+    {
+      name: "Dönüşümler",
+      subtopics: ["Öteleme", "Simetri", "Dönme"],
     },
   ],
 };
@@ -979,36 +1028,80 @@ const AYT_DIN: SubjectConfig = {
   ],
 };
 
-// Sınav Yapılandırmaları
-export const TYT_CONFIG: SubjectConfig[] = [
-  TYT_TURKCE,
-  TYT_MATEMATIK,
-  TYT_FIZIK,
-  TYT_KIMYA,
-  TYT_BIYOLOJI,
-  TYT_TARIH,
-  TYT_COGRAFYA,
-  TYT_FELSEFE,
-  TYT_DIN,
+// Backend bolum yapisi (ExamSectionRequest.name ile birebir eslesmeli)
+export interface ExamSectionConfig {
+  name: string;
+  subjects: SubjectConfig[];
+}
+
+// UI ders adi -> backend lessonCode
+export const LESSON_CODES: Record<string, number> = {
+  "Türkçe": 10,
+  "Türk Dili ve Edebiyatı": 10,
+  "Matematik": 11,
+  "Geometri": 12,
+  "Fizik": 13,
+  "Kimya": 14,
+  "Biyoloji": 15,
+  "Tarih": 16,
+  "Tarih-1": 16,
+  "Tarih-2": 16,
+  "Coğrafya": 17,
+  "Coğrafya-1": 17,
+  "Coğrafya-2": 17,
+  "Felsefe": 18,
+  "Felsefe Grubu": 18,
+  "Din Kültürü": 19,
+};
+
+export function getLessonCode(subjectName: string): number | undefined {
+  return LESSON_CODES[subjectName];
+}
+
+// TYT bolumleri
+export const TYT_SECTIONS: ExamSectionConfig[] = [
+  { name: "Türkçe", subjects: [TYT_TURKCE] },
+  {
+    name: "Sosyal Bilimler",
+    subjects: [TYT_TARIH, TYT_COGRAFYA, TYT_FELSEFE, TYT_DIN],
+  },
+  { name: "Temel Matematik", subjects: [TYT_MATEMATIK] },
+  {
+    name: "Fen Bilimleri",
+    subjects: [TYT_FIZIK, TYT_KIMYA, TYT_BIYOLOJI],
+  },
 ];
 
-export const AYT_CONFIG: SubjectConfig[] = [
-  AYT_MATEMATIK,
-  AYT_FIZIK,
-  AYT_KIMYA,
-  AYT_BIYOLOJI,
-  AYT_EDEBIYAT,
-  AYT_TARIH,
-  AYT_COGRAFYA,
-  AYT_FELSEFE,
-  AYT_DIN,
+// AYT bolumleri
+export const AYT_SECTIONS: ExamSectionConfig[] = [
+  {
+    name: "Türk Dili ve Edebiyatı – Sosyal Bilimler-1",
+    subjects: [AYT_EDEBIYAT, AYT_TARIH_1, AYT_COGRAFYA_1],
+  },
+  {
+    name: "Sosyal Bilimler-2",
+    subjects: [AYT_TARIH_2, AYT_COGRAFYA_2, AYT_FELSEFE, AYT_DIN],
+  },
+  { name: "Matematik", subjects: [AYT_MATEMATIK, AYT_GEOMETRI] },
+  {
+    name: "Fen Bilimleri",
+    subjects: [AYT_FIZIK, AYT_KIMYA, AYT_BIYOLOJI],
+  },
 ];
 
-// Toplam soru sayıları
+// Duz liste (geriye uyumluluk icin)
+export const TYT_CONFIG: SubjectConfig[] = TYT_SECTIONS.flatMap((s) => s.subjects);
+export const AYT_CONFIG: SubjectConfig[] = AYT_SECTIONS.flatMap((s) => s.subjects);
+
+// Toplam soru sayilari
 export const TYT_TOTAL_QUESTIONS = TYT_CONFIG.reduce((sum, s) => sum + s.questionCount, 0); // 120
 export const AYT_TOTAL_QUESTIONS = AYT_CONFIG.reduce((sum, s) => sum + s.questionCount, 0); // 160
 
-// Yardımcı fonksiyonlar
+// Yardimci fonksiyonlar
+export function getExamSections(examType: "TYT" | "AYT"): ExamSectionConfig[] {
+  return examType === "TYT" ? TYT_SECTIONS : AYT_SECTIONS;
+}
+
 export function getExamConfig(examType: "TYT" | "AYT"): SubjectConfig[] {
   return examType === "TYT" ? TYT_CONFIG : AYT_CONFIG;
 }

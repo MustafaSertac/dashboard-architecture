@@ -15,24 +15,24 @@
 | **Content-Type** | `application/json` |
 | **CORS** | **YOK** — dev proxy kullan veya backend'e CORS ekle |
 
-### CORS Çözümü
+### CORS / Proxy Çözümü
 
-**Seçenek A — Vite Dev Proxy (önerilen):**
+**Seçenek A — Next.js Rewrite Proxy (mevcut, önerilen):**
 ```javascript
-// vite.config.ts
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5295',
-        changeOrigin: true
-      }
-    }
+// next.config.mjs
+async rewrites() {
+  if (process.env.NODE_ENV === "development") {
+    return [{
+      source: "/api/v1.0/:path*",
+      destination: "http://localhost:5295/api/v1.0/:path*",
+    }];
   }
-})
+  return [];
+}
 ```
+Frontend `API_BASE_URL = "/api/v1.0"` ile aynı origin'den çağırır; CORS preflight gerekmez.
 
-**Seçenek B — Backend'e CORS ekle:**
+**Seçenek B — Backend'e CORS ekle (opsiyonel):**
 ```csharp
 // Program.cs
 builder.Services.AddCors(o => o.AddPolicy("dev", b => 
@@ -104,12 +104,17 @@ HTTP status code JSON body'de **DEĞİLDİR** — HTTP header'da gelir (200, 201
 |--------|-------|------|-------------|----------------|
 | POST | `/auth/login` | AllowAnonymous | `{ email, password }` | `AuthResponse` |
 | POST | `/auth/student` | AllowAnonymous | `StudentRegisterRequest` | `AuthResponse` (201) |
-| POST | `/auth/teachter` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) |
-| POST | `/auth/forgot-password` | AllowAnonymous | `{ email, newPassword }` | `{ message }` |
-| POST | `/auth/refresh-token` | JWT gerekli | `{ refreshToken }` | `AuthResponse` |
+| POST | `/auth/teacher` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) |
+| POST | `/auth/teachter` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) — **deprecated** |
+| POST | `/auth/forgot-password/request` | AllowAnonymous | `{ email }` | `{ message }` |
+| POST | `/auth/forgot-password/verify` | AllowAnonymous | `{ token }` | `{ valid: boolean }` |
+| POST | `/auth/forgot-password/reset` | AllowAnonymous | `{ token, newPassword }` | `{ message }` |
+| POST | `/auth/refresh-token` | **AllowAnonymous** | `{ refreshToken }` | `AuthResponse` |
 | POST | `/auth/logout` | JWT gerekli | `{ refreshToken }` | `{ message }` |
 | GET | `/auth/profiles/{userId}` | JWT gerekli | — | `UserProfileResponse` |
 | PUT | `/auth/profiles` | JWT gerekli | `UpdateProfileRequest` | `UserProfileResponse` |
+
+> **⚠️ Kritik:** `POST /auth/refresh-token` **AllowAnonymous** olmalıdır. Frontend interceptor, süresi dolan access token ile Bearer header göndermeden bu endpoint'i çağırır. JWT zorunlu olursa 15 dk'da bir oturum düşer.
 
 ### Auth DTO'lar
 
@@ -133,6 +138,25 @@ interface UserProfileResponse {
 }
 ```
 
+**ForgotPassword DTO'lar (3-adımlı akış):**
+```typescript
+interface ForgotPasswordRequestReq { email: string; }
+interface ForgotPasswordVerifyReq { token: string; }
+interface ForgotPasswordVerifyResponse { valid: boolean; }
+interface ForgotPasswordResetReq { token: string; newPassword: string; }
+```
+
+**Akış:**
+1. `POST /auth/forgot-password/request` → email varsa şifre sıfırlama token'ı oluşturulur, e-posta gönderilir. Email yoksa da 200 döner (güvenlik).
+2. `POST /auth/forgot-password/verify` → token geçerli ve süresi dolmamışsa `{ valid: true }`, aksi halde `{ valid: false }` (HTTP 200).
+3. `POST /auth/forgot-password/reset` → token geçerliyse şifre güncellenir. Geçersiz token → `ERR_INVALID_RESET_TOKEN`.
+
+**Test Hesapları (E2E için seed edilmeli):**
+| Email | Şifre | Rol |
+|-------|-------|-----|
+| `elif@edu.com` | `student123` | Student |
+| `ahmet@edu.com` | `teacher123` | Teacher |
+
 ### Auth Hataları
 
 | Error Code | HTTP | Açıklama |
@@ -141,6 +165,8 @@ interface UserProfileResponse {
 | `ERR_INVALID_CREDENTIALS` | 401 | Hatalı email/şifre |
 | `ERR_EMAIL_EXISTS` | 409 | Email zaten kayıtlı |
 | `ERR_INVALID_REFRESH_TOKEN` | 400/401 | Refresh token geçersiz/süresi dolmuş |
+| `ERR_INVALID_RESET_TOKEN` | 400 | Şifre sıfırlama token'ı geçersiz |
+| `ERR_RESET_TOKEN_EXPIRED` | 400 | Şifre sıfırlama token'ı süresi dolmuş |
 | `ERR_USER_NOT_FOUND` | 404 | Kullanıcı bulunamadı |
 
 ---
@@ -171,7 +197,7 @@ const TaskType = { Assigned: 0, UnAssigned: 1 } as const;
 
 ---
 
-## 5. Tüm Endpoint Kataloğu (39 endpoint)
+## 5. Tüm Endpoint Kataloğu (51 endpoint)
 
 ### 5.1 Lessons
 
@@ -266,6 +292,7 @@ interface TopicDTO {
 | Method | Route | Body | Response `data` |
 |--------|-------|------|----------------|
 | GET | `/api/v1.0/exams/trends?studentId=X&examCode=10&limit=10` | — | `ExamSummaryDTO[]` |
+| GET | `/api/v1.0/exams/trends/all?examCode=10&limit=10&teacherId={guid}` | — | `StudentTrendDTO[]` |
 | GET | `/api/v1.0/exams/{id}?detailed=false` | — | `ExamSummaryDTO` (summary) |
 | GET | `/api/v1.0/exams/{id}?detailed=true` | — | `ExamDTO` (detaylı) |
 | GET | `/api/v1.0/exams?studentId=X&page=1&pageSize=10` | — | `PagedResult<ExamSummaryDTO>` |
@@ -398,7 +425,9 @@ interface ExamLessonDTO {
 }
 
 interface ExamTopicResultDTO {
-  id: string; topicCode: number; name: string; wrong: number; blank: number;
+  id: string; topicCode: number; name: string;
+  correct: number; wrong: number; blank: number;
+  questionNumbers: number[];
 }
 ```
 
@@ -412,6 +441,17 @@ interface ExamSummaryDTO {
 }
 ```
 
+**StudentTrendDTO (toplu trend — öğretmenin tüm öğrencileri için):**
+```typescript
+interface StudentTrendDTO {
+  studentId: string;
+  studentName: string;
+  exams: ExamSummaryDTO[];
+}
+```
+
+> **topicResults sözleşmesi:** Frontend `topicCode: 0` + serbest konu adı (`name`) gönderebilir. Backend `name` alanını source-of-truth olarak kullanmalı; `topicCode: 0` ise serbest metin konu olarak kabul edilmeli. `correct` ve `questionNumbers` alanları opsiyonel gönderilir; backend persist edip response'ta dönmelidir.
+
 ### 5.5 Study Tasks
 
 | Method | Route | Body | Response `data` |
@@ -424,16 +464,19 @@ interface ExamSummaryDTO {
 | DELETE | `/api/v1.0/study-tasks` | `DeleteTaskRequest` | success |
 | POST | `/api/v1.0/study-tasks/complete` | `CompleteTaskRequest` | `StudyTaskDTO` |
 | POST | `/api/v1.0/study-tasks/log-study` | `LogTaskStudyRequest` | `StudyTaskDTO` |
+| POST | `/api/v1.0/study-tasks/complete/batch` | `{ taskIds: string[] }` | `BatchCompleteResponse` |
+| POST | `/api/v1.0/study-tasks/{taskId}/focus-session` | `CreateFocusSessionRequest` | `FocusSessionDTO` (201) |
+| GET | `/api/v1.0/study-tasks/{taskId}/focus-sessions?date=yyyy-MM-dd` | — | `FocusSessionDTO[]` |
 
 **CreateTaskRequest:**
 ```json
 {
   "studentId": "student-123",
-  "lessonId": "lesson-1",
+  "lessonId": "",
   "lessonTitle": "Matematik",
   "taskType": 0,
-  "topicId": "topic-1",
-  "unitId": "unit-1",
+  "topicId": "",
+  "unitId": "",
   "topicTitle": "Fonksiyonlar",
   "title": "Fonksiyon Çalışması",
   "description": "Günlük çalışma",
@@ -442,6 +485,8 @@ interface ExamSummaryDTO {
   "dueDate": "2026-08-10"
 }
 ```
+
+> **Not:** `teacherId` JWT claim'den doldurulur (request body'ye konmaz). `lessonId`, `topicId`, `unitId` opsiyoneldir — UI serbest metin kullanıyorsa boş string gelebilir; `lessonTitle`/`topicTitle` source-of-truth'tur. `taskType` UI tarafından her zaman `0` (Assigned) gönderilir.
 
 **LogTaskStudyRequest:**
 ```json
@@ -457,7 +502,10 @@ interface ExamSummaryDTO {
 **StudyTaskDTO:**
 ```typescript
 interface StudyTaskDTO {
-  taskId: string; lessonId: string; lessonTitle: string;
+  taskId: string; studentId: string; teacherId?: string;
+  dueDate: string; // "yyyy-MM-dd"
+  createdAt: string; updatedAt?: string;
+  lessonId: string; lessonTitle: string;
   topicId: string; topicTitle: string; unitId?: string;
   title: string; description: string; taskType: number;
   targetHours: number; targetQuestions: number;
@@ -467,13 +515,43 @@ interface StudyTaskDTO {
 }
 ```
 
+**BatchCompleteResponse:**
+```typescript
+interface BatchCompleteResponse {
+  completedCount: number;
+  failedIds: string[];
+}
+```
+
+**CreateFocusSessionRequest:**
+```typescript
+interface CreateFocusSessionRequest {
+  durationMinutes: number;
+  startedAt?: string;
+  endedAt?: string;
+}
+```
+
+**FocusSessionDTO:**
+```typescript
+interface FocusSessionDTO {
+  id: string;
+  taskId: string;
+  studentId: string;
+  date: string;
+  durationMinutes: number;
+  startedAt?: string;
+  endedAt?: string;
+}
+```
+
 ### 5.6 Analytics
 
 | Method | Route | Response `data` |
 |--------|-------|----------------|
 | GET | `/api/v1.0/analytics/weekly?studentId=X&weekStart=2026-08-03` | `WeeklyAnalyticsDTO` |
-| GET | `/api/v1.0/analytics/monthly?studentId=X&year=2026&month=8` | `MonthlyAnalyticsDTO` |
-| GET | `/api/v1.0/analytics/yearly?studentId=X&year=2026` | `MonthlyAnalyticsDTO` |
+| GET | `/api/v1.0/analytics/monthly?studentId=X&year=2026&month=8&perSubject=true` | `MonthlyAnalyticsDTO` |
+| GET | `/api/v1.0/analytics/yearly?studentId=X&year=2026&perSubject=true` | `MonthlyAnalyticsDTO` |
 | GET | `/api/v1.0/analytics/dashboard?studentId=X` | `DashboardOverviewDTO` |
 
 **WeeklyAnalyticsDTO:**
@@ -497,6 +575,15 @@ interface MonthlyAnalyticsDTO {
   year: number; month: number;
   summary: { totalHours: number; totalQuestions: number; completedCount: number; pendingCount: number; };
   courses: CourseStats[];
+  perSubjectStats?: PerSubjectStats[];
+}
+
+interface PerSubjectStats {
+  subject: string;
+  totalHours: number;
+  totalQuestions: number;
+  completedCount: number;
+  pendingCount: number;
 }
 
 interface CourseStats {
@@ -517,6 +604,58 @@ interface DashboardOverviewDTO {
   };
   recentExams: ExamSummaryDTO[];
 }
+```
+
+### 5.7 Teachers
+
+| Method | Route | Body | Response `data` |
+|--------|-------|------|----------------|
+| GET | `/api/v1.0/teachers/{teacherId}/students` | — | `TeacherStudentDTO[]` |
+| POST | `/api/v1.0/teachers/{teacherId}/students` | `{ studentId: string }` | success (201) |
+| DELETE | `/api/v1.0/teachers/{teacherId}/students/{studentId}` | — | success |
+
+**TeacherStudentDTO:**
+```typescript
+interface TeacherStudentDTO {
+  id: string; name: string; email: string; avatar?: string;
+  weeklyProgress: number;   // %0-100 (son 7 gün)
+  totalTasks: number;
+  completedTasks: number;
+  totalHours: number;
+  lastActive?: string;      // "yyyy-MM-dd"
+}
+```
+
+### 5.8 Notes (Öğrenci Notları / Feedback)
+
+| Method | Route | Body | Response `data` |
+|--------|-------|------|----------------|
+| GET | `/api/v1.0/students/{studentId}/notes` | — | `NoteDTO[]` |
+| POST | `/api/v1.0/students/{studentId}/notes` | `CreateNoteRequest` | `NoteDTO` (201) |
+| DELETE | `/api/v1.0/students/{studentId}/notes/{noteId}` | — | success |
+
+> **Not:** `teacherId` JWT claim'den doldurulur; request body'ye konmaz.
+
+**CreateNoteRequest:**
+```json
+{
+  "category": "feedback",
+  "note": "Öğrenci bugün çok iyi performans gösterdi."
+}
+```
+
+**NoteDTO:**
+```typescript
+interface NoteDTO {
+  id: string;
+  studentId: string;
+  teacherId: string;
+  category: NoteCategory;
+  note: string;
+  createdAt: string;
+}
+
+type NoteCategory = "feedback" | "performance" | "improvement" | "praise";
 ```
 
 ---
@@ -602,6 +741,7 @@ Seed edilen resmi ders kodları (ExamDTO'da `lessonCode` olarak kullanılır):
 | `ERR_TOPIC_LESSON_MISMATCH` | 400 | Konu yanlış/boş toplamı dersle uyuşmuyor |
 | `ERR_LESSON_SECTION_MISMATCH` | 400 | Ders toplamı bölümle uyuşmuyor |
 | `ERR_EXAM_NOT_FOUND` | 404 | Sınav bulunamadı |
+| `ERR_TEACHER_NOT_FOUND` | 404 | Öğretmen bulunamadı (trendsAll teacherId) |
 | `ERR_UNEXPECTED_ERROR` | 500 | Beklenmeyen hata |
 
 ### Tasks Hataları
@@ -618,6 +758,8 @@ Seed edilen resmi ders kodları (ExamDTO'da `lessonCode` olarak kullanılır):
 | `ERR_INVALID_DATE_RANGE` | 400 | Tarih aralığı 90 günü geçemez |
 | `ERR_TASK_NOT_FOUND` | 404 | Görev bulunamadı |
 | `ERR_TASK_ALREADY_COMPLETED` | 409 | Görev zaten tamamlanmış |
+| `ERR_EMPTY_TASK_IDS` | 400 | taskIds boş olamaz |
+| `ERR_INVALID_DURATION` | 400 | durationMinutes > 0 olmalı |
 
 ### Analytics Hataları
 
@@ -626,6 +768,16 @@ Seed edilen resmi ders kodları (ExamDTO'da `lessonCode` olarak kullanılır):
 | `ERR_INVALID_STUDENT_ID` | 400 | Geçersiz student ID |
 | `ERR_INVALID_DATE_RANGE` | 400 | Geçersiz tarih aralığı |
 | `ERR_UNEXPECTED_ERROR` | 500 | Beklenmeyen hata |
+
+### Notes Hataları
+
+| Code | HTTP | Açıklama |
+|------|------|----------|
+| `ERR_STUDENT_NOT_FOUND` | 404 | Öğrenci bulunamadı |
+| `ERR_NOTE_NOT_FOUND` | 404 | Not bulunamadı |
+| `ERR_INVALID_CATEGORY` | 400 | Geçersiz kategori (feedback/performance/improvement/praise) |
+| `ERR_EMPTY_NOTE` | 400 | Not boş olamaz |
+| `ERR_NOTE_TOO_LONG` | 400 | Not 2000 karakteri aşamaz |
 
 ---
 
@@ -712,7 +864,7 @@ class ApiError extends Error {
 
 ## 10. Önemli Notlar
 
-1. **Teacher register route'u yanlış yazılmış:** `POST /auth/teachter` — sondaki "teachter" yazımı backend kaynak kodunda böyle. Frontend'te bu URL'yi aynen kullan.
+1. **Teacher register route'u:** `POST /auth/teacher` artık doğru route'tur. Eski `POST /auth/teachter` hâlâ çalışır (backward-compatible) fakat `Deprecation: true` header'ı ile işaretlenmiştir — yeni kodda `/auth/teacher` kullanılmalıdır.
 
 2. **DELETE endpoint'leri body alır:** Task DELETE `/study-tasks` endpoint'i route parametresi yerine body'de `{ taskId: "..." }` bekler. Normalden farklı bir pattern.
 
@@ -725,3 +877,35 @@ class ApiError extends Error {
 6. **TopicResults isteğe bağlıdır:** ExamLessonRequest'te `topicResults` boş dizi olabilir. Sadece yanlış/boşlar için konu bazında breakdown istenirse doldurulur.
 
 7. **ExamSection name birebir template'le eşleşmeli:** Bölüm adları (örn. "Türkçe", "Sosyal Bilimler", "Matematik") tam olarak template'teki gibi olmalıdır.
+
+8. **refresh-token AllowAnonymous:** `POST /auth/refresh-token` JWT gerektirmez. Frontend interceptor, süresi dolan access token ile Bearer header göndermeden bu endpoint'i çağırır. JWT zorunlu olursa 15 dk'da bir oturum düşer.
+
+9. **CreateTaskRequest'te teacherId yok:** `teacherId` JWT claim'den doldurulur; request body'ye konmaz. `lessonId`, `topicId`, `unitId` opsiyoneldir — UI serbest metin kullanıyorsa boş string gelebilir.
+
+10. **topicResults sözleşmesi:** Frontend `topicCode: 0` + serbest konu adı (`name`) gönderebilir. Backend `name` alanını source-of-truth olarak kullanmalı; `topicCode: 0` ise serbest metin konu olarak kabul edilmeli. `correct` ve `questionNumbers` alanları opsiyonel gönderilir; backend persist edip response'ta dönmelidir.
+
+---
+
+## 11. Ön Implementasyon: Contract Testler (Vitest)
+
+> **Backend ekibi için:** Aşağıdaki test dosyaları frontend'de önceden implement edilmiştir. Her test, backend'in sağlaması gereken endpoint sözleşmesini (URL, method, body, response shape) doğrular. `npm run test:run` ile çalıştırılabilir — backend gerektirmez (mock'lu).
+
+| Test dosyası | Doğruladığı endpoint sözleşmesi |
+|---|---|
+| `src/modules/auth/services/auth.service.test.ts` | login, registerStudent (`/auth/student`), **registerTeacher (`/auth/teacher`)**, refreshToken, logout, getProfile, updateProfile, forgot-password 3-adım |
+| `src/modules/study-tasks/services/study-task.service.test.ts` | today, upcoming(limit), byStudentRange, create, update (PUT /study-tasks/update), **delete (body ile)**, complete, complete/batch, logStudy, focus-session create/get |
+| `src/modules/exams/services/exam.service.test.ts` | list (studentId/page/pageSize), detail (?detailed), trends, trendsAll (?teacherId), create, update, delete |
+| `src/modules/analytics/services/analytics.service.test.ts` | weekly, monthly (?perSubject), yearly (?perSubject), dashboard |
+| `src/modules/teacher/services/teacher.service.test.ts` | GET /teachers/{teacherId}/students, **addStudent (POST)**, **removeStudent (DELETE)** |
+| `src/modules/notes/services/note.service.test.ts` | list, create (**teacherId body'ye konmaz**), delete |
+| `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic |
+| `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope (envelope doğrulama) |
+| `src/components/dashboard/study-timer-card.test.tsx` | focus-session kaydı (reset → mutate), taskId yoksa disabled |
+| `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
+| `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan dueDate/studentId/createdAt (fallback yok) |
+| `src/modules/exams/mappers/exam.mapper.test.ts` | topicResults correct/questionNumbers doğrudan DTO'dan |
+| `src/modules/analytics/mappers/analytics.mapper.test.ts` | perSubjectStats doğrudan kullanılır; yoksa boş array |
+| `src/components/teacher/note-modal.test.tsx` | boş not hata toast + başarılı kayıt |
+| `src/components/teacher/teacher-actions.test.tsx` | Toplu Onayla tamamlanmamış task id'lerini gönderir |
+
+> **Backend entegrasyonu:** Swagger/Postman ile aynı sözleşmeleri sağlayın. Frontend testleri contract'ı kilitler; backend response shape değişirse testler kırılır.

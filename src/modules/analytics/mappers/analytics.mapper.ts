@@ -21,12 +21,12 @@ export function mapMonthlyAnalytics(dto: MonthlyAnalyticsDTO): {
   courseStats: UiCourseStats[];
   summary: MonthlyAnalyticsDTO["summary"];
 } {
-  const subjectStats: SubjectStats[] = dto.courses.map((course) => ({
-    subject: course.course,
-    totalHours: 0,
-    totalQuestions: course.branches.reduce((s, b) => s + b.totalQuestions, 0),
-    completedCount: dto.summary.completedCount,
-    pendingCount: dto.summary.pendingCount,
+  const subjectStats: SubjectStats[] = (dto.perSubjectStats ?? []).map((p) => ({
+    subject: p.subject,
+    totalHours: p.totalHours,
+    totalQuestions: p.totalQuestions,
+    completedCount: p.completedCount,
+    pendingCount: p.pendingCount,
   }));
 
   const courseStats: UiCourseStats[] = dto.courses.map((course) => ({

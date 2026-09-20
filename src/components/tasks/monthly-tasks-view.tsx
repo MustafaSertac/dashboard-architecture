@@ -18,6 +18,7 @@ import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
   const startDateStr = format(calendarStart, "yyyy-MM-dd");
   const endDateStr = format(calendarEnd, "yyyy-MM-dd");
 
-  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+  const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
     startDateStr,
     endDateStr
@@ -123,9 +124,10 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
   }, [calendarDays, currentMonth]);
 
   const statusColors = {
-    success: "bg-success/20 border-success/40 text-success-foreground",
-    warning: "bg-warning/20 border-warning/40 text-warning-foreground",
-    danger: "bg-destructive/20 border-destructive/40 text-destructive-foreground",
+    success: "bg-success/10 border-success/50 border-l-4 border-l-success",
+    warning: "bg-warning/10 border-warning/50 border-l-4 border-l-warning",
+    danger:
+      "bg-destructive/10 border-destructive/50 border-l-4 border-l-destructive",
     empty: "bg-card",
   };
 
@@ -192,13 +194,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
       ) : isError ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-sm text-destructive mb-2">Veri yuklenemedi</p>
-            <button
-              onClick={() => refetch()}
-              className="text-sm text-primary hover:underline"
-            >
-              Tekrar dene
-            </button>
+            <ErrorState error={error} title="Veri yuklenemedi" onRetry={() => refetch()} />
           </CardContent>
         </Card>
       ) : (
@@ -245,7 +241,7 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
                               {day.date.getDate()}
                             </div>
                             {day.totalQuestions > 0 && (
-                              <div className="mt-1 space-y-0.5 text-[10px]">
+                              <div className="mt-1 space-y-0.5 text-[11px] text-foreground">
                                 <div>
                                   {day.completedQuestions}/{day.totalQuestions} soru
                                 </div>

@@ -20,20 +20,22 @@ export const analyticsService = {
   async monthly(
     studentId: string,
     year: number,
-    month: number
+    month: number,
+    perSubject: boolean = false
   ): Promise<MonthlyAnalyticsDTO> {
     const res = await apiClient.get(endpoints.analytics.monthly, {
-      params: { studentId, year, month },
+      params: { studentId, year, month, perSubject },
     });
     return res.data.data;
   },
 
   async yearly(
     studentId: string,
-    year: number
+    year: number,
+    perSubject: boolean = false
   ): Promise<MonthlyAnalyticsDTO> {
     const res = await apiClient.get(endpoints.analytics.yearly, {
-      params: { studentId, year },
+      params: { studentId, year, perSubject },
     });
     return res.data.data;
   },

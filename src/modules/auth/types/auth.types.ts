@@ -37,9 +37,28 @@ export interface TeacherRegisterRequest {
   phoneNumber?: string;
 }
 
+// BACKEND #9 (Dusuk) TAMAMLANDI: email dogrulamali 3-adimli sifirlama akisi.
+// Eski {email, newPassword} endpoint deprecated.
 export interface ForgotPasswordRequest {
   email: string;
   newPassword: string;
+}
+
+export interface ForgotPasswordRequestReq {
+  email: string;
+}
+
+export interface ForgotPasswordVerifyReq {
+  token: string;
+}
+
+export interface ForgotPasswordResetReq {
+  token: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordVerifyResponse {
+  valid: boolean;
 }
 
 export interface RefreshTokenRequest {

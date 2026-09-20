@@ -5,12 +5,13 @@ import { useUpcomingTasks } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 
 export function UpcomingTasksCard() {
   const { user } = useAuth();
-  const { data: tasks, isLoading, isError, refetch } = useUpcomingTasks(user?.id ?? "");
+  const { data: tasks, isLoading, isError, error, refetch } = useUpcomingTasks(user?.id ?? "");
 
   if (isLoading) {
     return (
@@ -33,13 +34,7 @@ export function UpcomingTasksCard() {
           <CardTitle className="text-base font-semibold">Eksik Görevler</CardTitle>
         </CardHeader>
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-destructive mb-2">Yaklasan görevler yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Yaklasan görevler yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );

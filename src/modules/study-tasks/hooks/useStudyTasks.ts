@@ -9,25 +9,15 @@ import type {
   DeleteTaskRequest,
   CompleteTaskRequest,
   LogTaskStudyRequest,
+  CreateFocusSessionRequest,
 } from "@/modules/study-tasks/types/study-task.types";
-
-function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 export function useTodayTasks(studentId: string) {
   return useQuery({
     queryKey: qk.tasks.today(studentId),
     queryFn: async () => {
       const dtos = await studyTaskService.today(studentId);
-      // BACKEND EKSIK #1: dto.dueDate yok. today endpoint'i zaten "bugun" filtresi
-      // yaptigi icin dueDate = bugun varsayiyoruz.
-      return dtos.map((dto) =>
-        mapStudyTaskToUi(dto, {
-          fallbackDate: todayISO(),
-          fallbackStudentId: studentId,
-        })
-      ) as Task[];
+      return dtos.map(mapStudyTaskToUi) as Task[];
     },
     enabled: !!studentId,
   });
@@ -38,14 +28,7 @@ export function useUpcomingTasks(studentId: string) {
     queryKey: qk.tasks.upcoming(studentId),
     queryFn: async () => {
       const dtos = await studyTaskService.upcoming(studentId);
-      // BACKEND EKSIK #1: dto.dueDate yok. upcoming endpoint'i "gelecek" filtresi
-      // yapiyor; UI tarihe gore gruplarken dto.dueDate ?? fallback kullanir.
-      return dtos.map((dto) =>
-        mapStudyTaskToUi(dto, {
-          fallbackDate: todayISO(),
-          fallbackStudentId: studentId,
-        })
-      ) as Task[];
+      return dtos.map(mapStudyTaskToUi) as Task[];
     },
     enabled: !!studentId,
   });
@@ -64,18 +47,7 @@ export function useTasksByRange(
         startDate,
         endDate
       );
-      // BACKEND EKSIK #1: dto.dueDate yok. Range query'sinde her task'in hangi
-      // gune ait oldugu bilinemiyor. Iki strateji:
-      //   (a) Tek gun araligi (startDate === endDate) -> dueDate = startDate
-      //   (b) Coklu gun -> dueDate = startDate (UI tarafinda ek filtre yok;
-      //       bu yuzden DailyTasksView gibi bilesenler tek gun range ile cagrilmali)
-      const fallbackDate = startDate === endDate ? startDate : todayISO();
-      return dtos.map((dto) =>
-        mapStudyTaskToUi(dto, {
-          fallbackDate,
-          fallbackStudentId: studentId,
-        })
-      ) as Task[];
+      return dtos.map(mapStudyTaskToUi) as Task[];
     },
     enabled: !!studentId && !!startDate && !!endDate,
   });
@@ -85,9 +57,7 @@ function invalidateAllTasksForStudent(
   qc: ReturnType<typeof useQueryClient>,
   studentId: string
 ) {
-  // Hedefli invalidasyon: ["tasks", ...] prefix -> o student'in tum task query'leri.
   qc.invalidateQueries({ queryKey: qk.tasks.allForStudent(studentId) });
-  // today/upcoming ozel olarak da invalidasyona dahil (yukaridaki prefix kapsiyor).
 }
 
 export function useCreateTask() {
@@ -96,10 +66,7 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: async (data: CreateTaskRequest) => {
       const dto = await studyTaskService.create(data);
-      return mapStudyTaskToUi(dto, {
-        fallbackDate: data.dueDate,
-        fallbackStudentId: data.studentId,
-      });
+      return mapStudyTaskToUi(dto);
     },
     onSuccess: (_data, variables) => {
       invalidateAllTasksForStudent(queryClient, variables.studentId);
@@ -113,11 +80,7 @@ export function useUpdateTask(studentId: string) {
   return useMutation({
     mutationFn: async (data: UpdateTaskRequest) => {
       const dto = await studyTaskService.update(data);
-      return mapStudyTaskToUi(dto, {
-        // BACKEND EKSIK #1: dueDate response'ta yok; request'teki dueDate'i kullan.
-        fallbackDate: data.dueDate,
-        fallbackStudentId: data.studentId ?? studentId,
-      });
+      return mapStudyTaskToUi(dto);
     },
     onSuccess: () => {
       invalidateAllTasksForStudent(queryClient, studentId);
@@ -144,7 +107,7 @@ export function useCompleteTask(studentId: string) {
   return useMutation({
     mutationFn: async (data: CompleteTaskRequest) => {
       const dto = await studyTaskService.complete(data);
-      return mapStudyTaskToUi(dto, { fallbackStudentId: studentId });
+      return mapStudyTaskToUi(dto);
     },
     onSuccess: () => {
       invalidateAllTasksForStudent(queryClient, studentId);
@@ -158,7 +121,7 @@ export function useLogStudy(studentId: string) {
   return useMutation({
     mutationFn: async (data: LogTaskStudyRequest) => {
       const dto = await studyTaskService.logStudy(data);
-      return mapStudyTaskToUi(dto, { fallbackStudentId: studentId });
+      return mapStudyTaskToUi(dto);
     },
     onSuccess: () => {
       invalidateAllTasksForStudent(queryClient, studentId);
@@ -166,35 +129,38 @@ export function useLogStudy(studentId: string) {
   });
 }
 
-// BACKEND EKSIK #6 (Orta): Toplu complete endpoint'i YOK.
-// Stub strateji: once studyTaskService.completeBatch cagriliyor;
-// backend 404/405 donerse hook catch'te per-task complete'e duser.
 export function useBulkCompleteTasks(studentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (taskIds: string[]) => {
-      try {
-        await studyTaskService.completeBatch(taskIds);
-        return { completedCount: taskIds.length, failedIds: [] as string[] };
-      } catch (err) {
-        // Backend desteklemiyor -> per-task complete fallback.
-        const failedIds: string[] = [];
-        for (const taskId of taskIds) {
-          try {
-            await studyTaskService.complete({ taskId });
-          } catch {
-            failedIds.push(taskId);
-          }
-        }
-        return {
-          completedCount: taskIds.length - failedIds.length,
-          failedIds,
-        };
-      }
+      return studyTaskService.completeBatch(taskIds);
     },
     onSuccess: () => {
       invalidateAllTasksForStudent(queryClient, studentId);
+    },
+  });
+}
+
+export function useFocusSessions(taskId: string, date?: string) {
+  return useQuery({
+    queryKey: ["tasks", "focus-sessions", taskId, date],
+    queryFn: () => studyTaskService.getFocusSessions(taskId, date),
+    enabled: !!taskId,
+  });
+}
+
+export function useCreateFocusSession(taskId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateFocusSessionRequest) => {
+      return studyTaskService.createFocusSession(taskId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tasks", "focus-sessions", taskId],
+      });
     },
   });
 }

@@ -1,3 +1,5 @@
+import type { ExamCode, ExamStatus } from "@/types/common";
+
 export interface ExamSectionDTO {
   id: string;
   name: string;
@@ -25,11 +27,8 @@ export interface ExamTopicResultDTO {
   name: string;
   wrong: number;
   blank: number;
-  // BACKEND EKSIK #3 (Yuksek): correct ve questionNumbers alanlari YOK.
-  // UI "{correct}D/{wrong}Y/{blank}B" ve soru numaralari gosterimi icin gerekli.
-  // Frontend varmis gibi implement etti; backend ekleyene kadar 0/[] fallback.
-  correct?: number;
-  questionNumbers?: number[];
+  correct: number;
+  questionNumbers: number[];
 }
 
 export interface ExamDTO {
@@ -66,50 +65,57 @@ export interface ExamSummaryDTO {
   updatedAt?: string;
 }
 
-export interface CreateExamSectionLessonRequest {
+// BACKEND #7 (Orta) TAMAMLANDI: GET /exams/trends/all.
+export interface StudentTrendDTO {
+  studentId: string;
+  studentName: string;
+  exams: ExamSummaryDTO[];
+}
+
+export interface ExamTopicResultRequest {
+  topicCode: number;
+  name: string;
+  correct?: number;
+  wrong: number;
+  blank: number;
+  questionNumbers?: number[];
+}
+
+export interface ExamLessonRequest {
   lessonCode: number;
   name: string;
   correct: number;
   wrong: number;
   blank: number;
-  topicResults?: {
-    topicCode: number;
-    name: string;
-    // BACKEND EKSIK #3: correct gonderiyoruz ama backend tanimiyor (deprecated'e gitmeyecek).
-    correct?: number;
-    wrong: number;
-    blank: number;
-    // BACKEND EKSIK #3: questionNumbers gonderiyoruz ama backend tanimiyor.
-    questionNumbers?: number[];
-  }[];
+  topicResults?: ExamTopicResultRequest[];
 }
 
-export interface CreateExamSectionRequest {
+export interface ExamSectionRequest {
   name: string;
   correct: number;
   wrong: number;
   blank: number;
-  lessons: CreateExamSectionLessonRequest[];
+  lessons: ExamLessonRequest[];
 }
 
 export interface CreateExamRequest {
   studentId: string;
-  examCode: number;
+  examCode: ExamCode;
   examName: string;
   examDate: string;
   durationMinutes?: number;
   notes?: string;
-  status?: number;
-  sections: CreateExamSectionRequest[];
+  status?: ExamStatus;
+  sections: ExamSectionRequest[];
 }
 
 export interface UpdateExamRequest {
   studentId?: string;
-  examCode?: number;
+  examCode?: ExamCode;
   examName?: string;
   examDate?: string;
   durationMinutes?: number;
   notes?: string;
-  status?: number;
-  sections?: CreateExamSectionRequest[];
+  status?: ExamStatus;
+  sections?: ExamSectionRequest[];
 }

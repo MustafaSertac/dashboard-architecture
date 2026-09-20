@@ -72,6 +72,7 @@ export interface Task {
   completedQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
+  emptyAnswers: number;
   hoursStudied: number;
   status: "pending" | "in-progress" | "completed";
   createdAt: string;

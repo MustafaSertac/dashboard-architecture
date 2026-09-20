@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(""); 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
@@ -40,7 +41,7 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    const result = await register(name, email, password, role);
+    const result = await register(name, email, password, phoneNumber, role);
 
     if (result.success) {
       router.push("/dashboard");
@@ -98,6 +99,19 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Telefon Numarasi</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="05XXXXXXXXX"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                  autoComplete="tel"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="role">Rol</Label>
                 <Select value={role} onValueChange={(value: UserRole) => setRole(value)}>
                   <SelectTrigger>
@@ -106,7 +120,6 @@ export default function RegisterPage() {
                   <SelectContent>
                     <SelectItem value="student">Ogrenci</SelectItem>
                     <SelectItem value="teacher">Ogretmen</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

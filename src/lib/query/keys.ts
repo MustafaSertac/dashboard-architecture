@@ -35,7 +35,9 @@ export const qk = {
     byRange: (studentId: string, startDate?: string, endDate?: string) =>
       ["tasks", "range", studentId, startDate, endDate] as const,
     // Tum task query'lerini invalidasyonda prefix match icin kullanilir.
-    allForStudent: (studentId: string) => ["tasks", { studentId }] as const,
+    // Not: query key'lerin 2. elemani "today"/"upcoming"/"range" oldugundan
+    // studentId ile prefix kurulamaz; bu yuzden kok "tasks" prefix'i doner.
+    allForStudent: (_studentId: string) => ["tasks"] as const,
   },
 
   analytics: {

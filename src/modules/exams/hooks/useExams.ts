@@ -3,7 +3,7 @@ import { qk } from "@/lib/query/keys";
 import { examService } from "@/modules/exams/services/exam.service";
 import { mapExamDtoToUi } from "@/modules/exams/mappers/exam.mapper";
 import type { ExamResult } from "@/lib/types";
-import type { CreateExamRequest, UpdateExamRequest } from "@/modules/exams/types/exam.types";
+import type { CreateExamRequest, UpdateExamRequest, StudentTrendDTO } from "@/modules/exams/types/exam.types";
 
 export function useExamList(studentId: string) {
   return useQuery({
@@ -35,6 +35,26 @@ export function useExamTrends(studentId: string, examCode: number) {
       return items.map(mapExamDtoToUi) as ExamResult[];
     },
     enabled: !!studentId,
+  });
+}
+
+// BACKEND #7 (Orta) TAMAMLANDI: GET /exams/trends/all.
+export function useExamTrendsAll(
+  examCode: number,
+  teacherId?: string,
+  limit: number = 10
+) {
+  return useQuery({
+    queryKey: qk.exams.trendsAll(examCode, limit),
+    queryFn: async () => {
+      const items = await examService.trendsAll(examCode, limit, teacherId);
+      return items.map((s: StudentTrendDTO) => ({
+        studentId: s.studentId,
+        studentName: s.studentName,
+        exams: s.exams.map(mapExamDtoToUi) as ExamResult[],
+      }));
+    },
+    enabled: !!examCode,
   });
 }
 

@@ -4,11 +4,12 @@ import { useAuth } from "@/lib/auth-context";
 import { useDashboardOverview } from "@/modules/analytics/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { BookOpen, CheckCircle, Clock, TrendingUp } from "lucide-react";
 
 export function QuickStatsCard() {
   const { user } = useAuth();
-  const { data, isLoading, isError, refetch } = useDashboardOverview(user?.id ?? "");
+  const { data, isLoading, isError, error, refetch } = useDashboardOverview(user?.id ?? "");
 
   if (isLoading) {
     return (
@@ -32,13 +33,7 @@ export function QuickStatsCard() {
     return (
       <Card className="col-span-2 md:col-span-4">
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-destructive mb-2">Istatistikler yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Istatistikler yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );

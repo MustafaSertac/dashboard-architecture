@@ -25,7 +25,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Accordion,
   AccordionContent,
@@ -39,8 +38,8 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Check, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
-import type { ExamType, SubjectResult, TopicDetail } from "@/lib/types";
-import { getExamConfig, getTotalQuestions, type SubjectConfig } from "@/config/exam-config";
+import type { ExamType, TopicDetail } from "@/lib/types";
+import { getExamSections, getTotalQuestions, getLessonCode, type SubjectConfig } from "@/config/exam-config";
 import { cn } from "@/lib/utils";
 
 interface ExamInputModalProps {
@@ -77,8 +76,21 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
   const [subjectInputs, setSubjectInputs] = useState<Record<string, SubjectInput>>({});
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
-  const examConfig = useMemo(() => getExamConfig(examType), [examType]);
+  const sections = useMemo(() => getExamSections(examType), [examType]);
+  const allSubjects = useMemo(
+    () => sections.flatMap((section) => section.subjects),
+    [sections]
+  );
   const totalQuestions = useMemo(() => getTotalQuestions(examType), [examType]);
+
+  // Yanlış ve boşa göre doğru sayısını hesapla (0 yanlış 0 boş ise tümü doğru)
+  const getSubjectCounts = (subject: SubjectConfig) => {
+    const input = subjectInputs[subject.name];
+    const wrong = parseInt(input?.wrong || "0") || 0;
+    const empty = parseInt(input?.empty || "0") || 0;
+    const correct = Math.max(subject.questionCount - wrong - empty, 0);
+    return { correct, wrong, empty };
+  };
 
   // Toplam değerleri hesapla
   const totals = useMemo(() => {
@@ -86,62 +98,65 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
     let totalWrong = 0;
     let totalEmpty = 0;
 
-    examConfig.forEach((subject) => {
-      const input = subjectInputs[subject.name];
-      if (input) {
-        totalCorrect += parseInt(input.correct) || 0;
-        totalWrong += parseInt(input.wrong) || 0;
-        totalEmpty += parseInt(input.empty) || 0;
-      }
+    allSubjects.forEach((subject) => {
+      const { correct, wrong, empty } = getSubjectCounts(subject);
+      totalCorrect += correct;
+      totalWrong += wrong;
+      totalEmpty += empty;
     });
 
     const totalNet = totalCorrect - totalWrong * 0.25;
     return { totalCorrect, totalWrong, totalEmpty, totalNet };
-  }, [subjectInputs, examConfig]);
+  }, [subjectInputs, allSubjects]);
 
   // Ders için giriş kontrolü
   const getSubjectValidation = (subject: SubjectConfig) => {
-    const input = subjectInputs[subject.name];
-    if (!input) return { valid: false, total: 0, message: "Giriş yapılmadı" };
+    const { wrong, empty } = getSubjectCounts(subject);
+    const entered = wrong + empty;
 
-    const correct = parseInt(input.correct) || 0;
-    const wrong = parseInt(input.wrong) || 0;
-    const empty = parseInt(input.empty) || 0;
-    const total = correct + wrong + empty;
-
-    if (total === 0) return { valid: false, total: 0, message: "Giriş yapılmadı" };
-    if (total !== subject.questionCount) {
+    if (entered > subject.questionCount) {
       return {
         valid: false,
-        total,
-        message: `Toplam ${total}/${subject.questionCount} (${subject.questionCount - total} eksik)`,
+        total: entered,
+        message: `Yanlış + boş ${entered}/${subject.questionCount} aşıyor`,
       };
     }
-    return { valid: true, total, message: "Tamam" };
+    return { valid: true, total: subject.questionCount, message: "Tamam" };
   };
 
   // Tüm dersler girildi mi kontrolü
   const allSubjectsValid = useMemo(() => {
-    return examConfig.every((subject) => getSubjectValidation(subject).valid);
-  }, [examConfig, subjectInputs]);
+    return allSubjects.every((subject) => getSubjectValidation(subject).valid);
+  }, [allSubjects, subjectInputs]);
 
-  // Ders girişini güncelle
+  // Ders girişini güncelle (doğru otomatik hesaplanır)
   const updateSubjectInput = (
     subjectName: string,
-    field: "correct" | "wrong" | "empty",
+    field: "wrong" | "empty",
     value: string
   ) => {
-    setSubjectInputs((prev) => ({
-      ...prev,
-      [subjectName]: {
-        ...prev[subjectName],
-        correct: prev[subjectName]?.correct || "",
-        wrong: prev[subjectName]?.wrong || "",
-        empty: prev[subjectName]?.empty || "",
-        topicDetails: prev[subjectName]?.topicDetails || [],
-        [field]: value,
-      },
-    }));
+    const subject = allSubjects.find((s) => s.name === subjectName);
+    setSubjectInputs((prev) => {
+      const existing = prev[subjectName];
+      const wrong = field === "wrong" ? value : existing?.wrong || "";
+      const empty = field === "empty" ? value : existing?.empty || "";
+      const correct = subject
+        ? Math.max(
+            subject.questionCount - (parseInt(wrong) || 0) - (parseInt(empty) || 0),
+            0
+          )
+        : 0;
+
+      return {
+        ...prev,
+        [subjectName]: {
+          wrong,
+          empty,
+          correct: String(correct),
+          topicDetails: existing?.topicDetails || [],
+        },
+      };
+    });
   };
 
   // Konu detayı ekle/güncelle
@@ -209,38 +224,40 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
       return;
     }
 
-    const subjectResults: SubjectResult[] = examConfig.map((subject) => {
-      const input = subjectInputs[subject.name];
-      const correct = parseInt(input.correct) || 0;
-      const wrong = parseInt(input.wrong) || 0;
-      const empty = parseInt(input.empty) || 0;
-      const net = correct - wrong * 0.25;
+    const subjectResults = sections.flatMap((section) =>
+      section.subjects.map((subject) => {
+        const input = subjectInputs[subject.name];
+        const { correct, wrong, empty } = getSubjectCounts(subject);
+        const net = correct - wrong * 0.25;
 
-      // Konu detaylarını dönüştür
-      const topicDetails: TopicDetail[] = input.topicDetails
-        .filter((t) => t.questionNumbers || t.correct || t.wrong || t.empty)
-        .map((t) => ({
-          topicName: t.topicName,
-          subtopicName: t.subtopicName,
-          questionNumbers: t.questionNumbers
-            .split(",")
-            .map((n) => parseInt(n.trim()))
-            .filter((n) => !isNaN(n)),
-          correct: parseInt(t.correct) || 0,
-          wrong: parseInt(t.wrong) || 0,
-          empty: parseInt(t.empty) || 0,
-        }));
+        // Konu detaylarını dönüştür
+        const topicDetails: TopicDetail[] = (input?.topicDetails ?? [])
+          .filter((t) => t.questionNumbers || t.correct || t.wrong || t.empty)
+          .map((t) => ({
+            topicName: t.topicName,
+            subtopicName: t.subtopicName,
+            questionNumbers: t.questionNumbers
+              .split(",")
+              .map((n) => parseInt(n.trim()))
+              .filter((n) => !isNaN(n)),
+            correct: parseInt(t.correct) || 0,
+            wrong: parseInt(t.wrong) || 0,
+            empty: parseInt(t.empty) || 0,
+          }));
 
-      return {
-        subjectName: subject.name,
-        questionCount: subject.questionCount,
-        correct,
-        wrong,
-        empty,
-        net,
-        topicDetails: topicDetails.length > 0 ? topicDetails : undefined,
-      };
-    });
+        return {
+          subjectName: subject.name,
+          sectionName: section.name,
+          lessonCode: getLessonCode(subject.name) ?? 0,
+          questionCount: subject.questionCount,
+          correct,
+          wrong,
+          empty,
+          net,
+          topicDetails: topicDetails.length > 0 ? topicDetails : undefined,
+        };
+      })
+    );
 
     // Backend'e gonderilecek request (mock addExamResult yerine)
     const createReq = mapUiExamFormToCreateRequest({
@@ -275,17 +292,17 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Deneme Sonucu Ekle</DialogTitle>
           <DialogDescription>
             {examType} sınavı için tüm derslerin sonuçlarını girin.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0 gap-4">
           {/* Üst Bilgiler */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4 shrink-0">
             <div>
               <Label htmlFor="date">Tarih</Label>
               <Input
@@ -322,7 +339,7 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
           </div>
 
           {/* Detaylı Giriş Toggle */}
-          <div className="flex items-center gap-2 py-2 border-y">
+          <div className="flex items-center gap-2 py-2 border-y shrink-0">
             <Switch
               id="topicDetails"
               checked={showTopicDetails}
@@ -334,15 +351,19 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
           </div>
 
           {/* Ders Listesi */}
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="space-y-2 pb-4">
-              {examConfig.map((subject) => {
-                const validation = getSubjectValidation(subject);
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+            <div className="space-y-4 pb-4">
+              {sections.map((section) => (
+                <div key={section.name} className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {section.name}
+                  </div>
+                  {section.subjects.map((subject) => {
+                    const validation = getSubjectValidation(subject);
                 const isExpanded = expandedSubject === subject.name;
                 const input = subjectInputs[subject.name];
-                const subjectNet =
-                  (parseInt(input?.correct || "0") || 0) -
-                  (parseInt(input?.wrong || "0") || 0) * 0.25;
+                const { correct, wrong, empty } = getSubjectCounts(subject);
+                const subjectNet = correct - wrong * 0.25;
 
                 return (
                   <div
@@ -403,18 +424,11 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
                           </Label>
                           <Input
                             type="number"
-                            min="0"
-                            max={subject.questionCount}
+                            readOnly
+                            tabIndex={-1}
                             placeholder="0"
-                            value={input?.correct || ""}
-                            onChange={(e) =>
-                              updateSubjectInput(
-                                subject.name,
-                                "correct",
-                                e.target.value
-                              )
-                            }
-                            className="h-8"
+                            value={correct}
+                            className="h-8 bg-muted cursor-default"
                           />
                         </div>
                         <div>
@@ -568,11 +582,13 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
                   </div>
                 );
               })}
+                </div>
+              ))}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Toplam Özet */}
-          <div className="rounded-lg bg-muted p-4 border-t">
+          <div className="rounded-lg bg-muted p-4 border-t shrink-0">
             <div className="grid grid-cols-5 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-success">
@@ -609,7 +625,7 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             İptal
           </Button>

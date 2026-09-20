@@ -1,48 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Eye, EyeOff, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { BookOpen, Loader2, ArrowLeft, MailCheck } from "lucide-react";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    if (newPassword !== confirmPassword) {
-      setError("Sifreler eslesmiyor");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Sifre en az 6 karakter olmalidir");
-      return;
-    }
-
     setIsLoading(true);
 
-    const result = await forgotPassword(email, newPassword);
+    const result = await forgotPassword(email);
 
     if (result.success) {
-      setIsSuccess(true);
+      setIsSent(true);
     } else {
-      setError(result.error || "Sifre sifirlama basarisiz");
+      setError(result.error || "Sifre sifirlama istegi basarisiz");
     }
 
     setIsLoading(false);
@@ -64,27 +48,25 @@ export default function ForgotPasswordPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Sifremi Unuttum</CardTitle>
             <CardDescription>
-              {isSuccess
-                ? "Sifreniz basariyla sifirlandi"
-                : "E-posta adresinizi ve yeni sifrenizi girin"}
+              {isSent
+                ? "Sifirlama baglantisi gonderildi"
+                : "E-posta adresinizi girin, size sifirlama baglantisi gonderelim"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isSuccess ? (
+            {isSent ? (
               <div className="space-y-4">
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
-                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                  <MailCheck className="w-12 h-12 text-green-500" />
                   <p className="text-sm text-muted-foreground">
-                    Sifreniz basariyla guncellendi. Yeni sifrenizle giris
-                    yapabilirsiniz.
+                    {email} adresine sifre sifirlama baglantisi gonderildi.
+                    Lutfen gelen kutunuzu kontrol edin. Baglanti 30 dakika
+                    gecerlidir.
                   </p>
                 </div>
-                <Button
-                  className="w-full"
-                  onClick={() => router.push("/login")}
-                >
-                  Girise Don
-                </Button>
+                <Link href="/login" className="block">
+                  <Button className="w-full">Girise Don</Button>
+                </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,46 +83,6 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">Yeni Sifre</Label>
-                  <div className="relative">
-                    <Input
-                      id="newPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="En az 6 karakter"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      autoComplete="new-password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Yeni Sifre Tekrar</Label>
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Yeni sifrenizi tekrar girin"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                  />
-                </div>
-
                 {error && (
                   <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                     <p className="text-sm text-destructive">{error}</p>
@@ -151,10 +93,10 @@ export default function ForgotPasswordPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sifre sifirlaniyor...
+                      Gonderiliyor...
                     </>
                   ) : (
-                    "Sifreyi Sifirla"
+                    "Sifirlama Baglantisi Gonder"
                   )}
                 </Button>
               </form>

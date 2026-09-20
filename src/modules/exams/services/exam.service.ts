@@ -4,6 +4,7 @@ import type { PagedResult } from "@/types/common";
 import type {
   ExamDTO,
   ExamSummaryDTO,
+  StudentTrendDTO,
   CreateExamRequest,
   UpdateExamRequest,
 } from "@/modules/exams/types/exam.types";
@@ -34,6 +35,18 @@ export const examService = {
   ): Promise<ExamSummaryDTO[]> {
     const res = await apiClient.get(endpoints.exams.trends, {
       params: { studentId, examCode, limit },
+    });
+    return res.data.data;
+  },
+
+  // BACKEND #7 (Orta) TAMAMLANDI: GET /exams/trends/all.
+  async trendsAll(
+    examCode: number,
+    limit: number = 10,
+    teacherId?: string
+  ): Promise<StudentTrendDTO[]> {
+    const res = await apiClient.get(endpoints.exams.trendsAll, {
+      params: { examCode, limit, teacherId },
     });
     return res.data.data;
   },

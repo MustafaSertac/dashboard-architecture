@@ -5,12 +5,13 @@ import { useDashboardOverview } from "@/modules/analytics/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 
 export function RecentExamsCard() {
   const { user } = useAuth();
-  const { data, isLoading, isError, refetch } = useDashboardOverview(user?.id ?? "");
+  const { data, isLoading, isError, error, refetch } = useDashboardOverview(user?.id ?? "");
 
   if (isLoading) {
     return (
@@ -33,13 +34,7 @@ export function RecentExamsCard() {
           <CardTitle className="text-base font-semibold">Son Denemeler</CardTitle>
         </CardHeader>
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-destructive mb-2">Denemeler yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Denemeler yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );

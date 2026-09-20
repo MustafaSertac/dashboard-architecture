@@ -7,6 +7,8 @@ import type {
   DeleteTaskRequest,
   CompleteTaskRequest,
   LogTaskStudyRequest,
+  FocusSessionDTO,
+  CreateFocusSessionRequest,
 } from "@/modules/study-tasks/types/study-task.types";
 
 export const studyTaskService = {
@@ -56,8 +58,7 @@ export const studyTaskService = {
     return res.data.data;
   },
 
-  // BACKEND EKSIK #6 (Orta): Toplu complete endpoint'i YOK.
-  // Service seviyesinde endpoint tanimlidir; hook 404/405 gelirse per-task'a duser.
+  // BACKEND #6 (Orta) TAMAMLANDI: POST /study-tasks/complete/batch.
   async completeBatch(taskIds: string[]): Promise<{
     completedCount: number;
     failedIds: string[];
@@ -70,6 +71,28 @@ export const studyTaskService = {
 
   async logStudy(data: LogTaskStudyRequest): Promise<StudyTaskDTO> {
     const res = await apiClient.post(endpoints.studyTasks.logStudy, data);
+    return res.data.data;
+  },
+
+  // BACKEND #10 (Dusuk) TAMAMLANDI: focus session tracking.
+  async createFocusSession(
+    taskId: string,
+    data: CreateFocusSessionRequest
+  ): Promise<FocusSessionDTO> {
+    const res = await apiClient.post(
+      endpoints.studyTasks.focusSession(taskId),
+      data
+    );
+    return res.data.data;
+  },
+
+  async getFocusSessions(
+    taskId: string,
+    date?: string
+  ): Promise<FocusSessionDTO[]> {
+    const res = await apiClient.get(endpoints.studyTasks.focusSessions(taskId), {
+      params: date ? { date } : {},
+    });
     return res.data.data;
   },
 };

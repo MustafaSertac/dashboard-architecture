@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
   const startDateStr = format(currentWeekStart, "yyyy-MM-dd");
   const endDateStr = format(weekEnd, "yyyy-MM-dd");
 
-  const { data: tasks, isLoading, isError, refetch } = useTasksByRange(
+  const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
     startDateStr,
     endDateStr
@@ -131,13 +132,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
       ) : isError ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-sm text-destructive mb-2">Veri yuklenemedi</p>
-            <button
-              onClick={() => refetch()}
-              className="text-sm text-primary hover:underline"
-            >
-              Tekrar dene
-            </button>
+            <ErrorState error={error} title="Veri yuklenemedi" onRetry={() => refetch()} />
           </CardContent>
         </Card>
       ) : (

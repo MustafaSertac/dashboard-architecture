@@ -56,39 +56,37 @@ export default function TasksPage() {
         </div>
         <div className="flex items-center gap-3">
           {isTeacher && (
-            <>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="student-select" className="text-sm whitespace-nowrap">
-                  Öğrenci:
-                </Label>
-                <Select
-                  value={selectedStudentId}
-                  onValueChange={setSelectedStudentId}
-                >
-                  <SelectTrigger id="student-select" className="w-[160px]">
-                    <SelectValue placeholder="Ogrenci sec" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                onClick={() => {
-                  setEditingTaskId(null);
-                  setModalOpen(true);
-                }}
-                disabled={!selectedStudentId}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="student-select" className="text-sm whitespace-nowrap">
+                Öğrenci:
+              </Label>
+              <Select
+                value={selectedStudentId}
+                onValueChange={setSelectedStudentId}
               >
-                <Plus className="mr-2 size-4" />
-                Görev Ekle
-              </Button>
-            </>
+                <SelectTrigger id="student-select" className="w-[160px]">
+                  <SelectValue placeholder="Ogrenci sec" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
+          <Button
+            onClick={() => {
+              setEditingTaskId(null);
+              setModalOpen(true);
+            }}
+            disabled={!selectedStudentId}
+          >
+            <Plus className="mr-2 size-4" />
+            Görev Ekle
+          </Button>
         </div>
       </div>
 
@@ -109,15 +107,24 @@ export default function TasksPage() {
         </TabsList>
 
         <TabsContent value="daily">
-          <DailyTasksView studentId={selectedStudentId} />
+          <DailyTasksView
+            studentId={selectedStudentId}
+            role={isTeacher ? "teacher" : "student"}
+          />
         </TabsContent>
 
         <TabsContent value="weekly">
-          <WeeklyTasksView studentId={selectedStudentId} />
+          <WeeklyTasksView
+            studentId={selectedStudentId}
+            role={isTeacher ? "teacher" : "student"}
+          />
         </TabsContent>
 
         <TabsContent value="monthly">
-          <MonthlyTasksView studentId={selectedStudentId} />
+          <MonthlyTasksView
+            studentId={selectedStudentId}
+            role={isTeacher ? "teacher" : "student"}
+          />
         </TabsContent>
       </Tabs>
 

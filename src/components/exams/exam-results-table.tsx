@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useExamList, useUpdateExam } from "@/modules/exams/hooks/useExams";
+import { useExamList, useExamDetail, useUpdateExam, useDeleteExam } from "@/modules/exams/hooks/useExams";
 import { ExamStatus } from "@/types/common";
 import {
   Table,
@@ -23,12 +23,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import {
@@ -38,7 +49,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { ExamType, ExamResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -54,11 +67,20 @@ export function ExamResultsTable({
   const { user } = useAuth();
   const studentId = propStudentId || user?.id || "";
 
-  const { data: allExams, isLoading, isError, refetch } = useExamList(studentId);
+  const { data: allExams, isLoading, isError, error, refetch } = useExamList(studentId);
   const updateExam = useUpdateExam();
+  const deleteExam = useDeleteExam();
 
   const [selectedExam, setSelectedExam] = useState<ExamResult | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  // Ozet listede sections gelmedigi icin ders detayini ayri endpoint'ten cek
+  const { data: examDetail, isLoading: isDetailLoading } = useExamDetail(
+    selectedExam?.id ?? "",
+    true
+  );
+  const detailExam = examDetail ?? selectedExam;
 
   const filteredResults = useMemo(() => {
     return (allExams ?? [])
@@ -71,10 +93,27 @@ export function ExamResultsTable({
       id: exam.id,
       studentId,
       data: {
-        examCode: 0, // Backend mevcut examCode'u koruyacak (partial update bekleniyor)
         status: checked ? ExamStatus.Completed : ExamStatus.Submitted,
       },
     });
+  };
+
+  const handleDeleteExam = () => {
+    if (!deleteTarget) return;
+    deleteExam.mutate(
+      { id: deleteTarget, studentId },
+      {
+        onSuccess: () => {
+          toast.success("Sinav silindi");
+          setDeleteTarget(null);
+        },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Sinav silinemedi";
+          toast.error(msg);
+          setDeleteTarget(null);
+        },
+      }
+    );
   };
 
   const toggleRow = (id: string) => {
@@ -124,13 +163,7 @@ export function ExamResultsTable({
           </CardTitle>
         </CardHeader>
         <CardContent className="py-8 text-center">
-          <p className="text-sm text-destructive mb-2">Sonuclar yuklenemedi</p>
-          <button
-            onClick={() => refetch()}
-            className="text-sm text-primary hover:underline"
-          >
-            Tekrar dene
-          </button>
+          <ErrorState error={error} title="Sonuclar yuklenemedi" onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );
@@ -282,53 +315,24 @@ export function ExamResultsTable({
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(exam.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
 
                     {/* Genişletilmiş Ders Detayları */}
-                    {isExpanded && exam.subjectResults && (
+                    {isExpanded && (
                       <div className="border-t bg-muted/20 p-4">
-                        <div className="grid gap-2">
-                          {exam.subjectResults.map((subject) => {
-                            const subjectPercentage =
-                              subject.questionCount > 0
-                                ? (subject.correct / subject.questionCount) * 100
-                                : 0;
-
-                            return (
-                              <div
-                                key={subject.subjectName}
-                                className="flex items-center gap-4 py-2 px-3 rounded-md bg-background"
-                              >
-                                <div className="w-40 font-medium text-sm truncate">
-                                  {subject.subjectName}
-                                </div>
-                                <div className="flex-1 flex items-center gap-2">
-                                  <Progress
-                                    value={subjectPercentage}
-                                    className="h-2 flex-1"
-                                  />
-                                  <span className="text-xs text-muted-foreground w-12">
-                                    %{subjectPercentage.toFixed(0)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <span className="text-success w-8 text-center">
-                                    {subject.correct}
-                                  </span>
-                                  <span className="text-destructive w-8 text-center">
-                                    {subject.wrong}
-                                  </span>
-                                  <span className="text-muted-foreground w-8 text-center">
-                                    {subject.empty}
-                                  </span>
-                                  <Badge variant="outline" className="font-mono">
-                                    {subject.net.toFixed(2)}
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <ExamSubjectsInline examId={exam.id} />
                       </div>
                     )}
                   </div>
@@ -344,38 +348,43 @@ export function ExamResultsTable({
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedExam?.examName || `${selectedExam?.examType} Sınavı`} -{" "}
-              {selectedExam &&
-                format(parseISO(selectedExam.date), "d MMMM yyyy", {
+              {detailExam?.examName || `${detailExam?.examType} Sınavı`} -{" "}
+              {detailExam &&
+                format(parseISO(detailExam.date), "d MMMM yyyy", {
                   locale: tr,
                 })}
             </DialogTitle>
           </DialogHeader>
 
-          {selectedExam && (
+          {isDetailLoading && !examDetail ? (
+            <div className="space-y-2 py-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          ) : detailExam ? (
             <div className="space-y-6">
               <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-success">
-                    {selectedExam.totalCorrect}
+                    {detailExam.totalCorrect}
                   </div>
                   <div className="text-xs text-muted-foreground">Toplam Doğru</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-destructive">
-                    {selectedExam.totalWrong}
+                    {detailExam.totalWrong}
                   </div>
                   <div className="text-xs text-muted-foreground">Toplam Yanlış</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-muted-foreground">
-                    {selectedExam.totalEmpty}
+                    {detailExam.totalEmpty}
                   </div>
                   <div className="text-xs text-muted-foreground">Toplam Boş</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {selectedExam.totalNet.toFixed(2)}
+                    {detailExam.totalNet.toFixed(2)}
                   </div>
                   <div className="text-xs text-muted-foreground">Toplam Net</div>
                 </div>
@@ -396,7 +405,7 @@ export function ExamResultsTable({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedExam.subjectResults?.map((subject) => {
+                    {detailExam.subjectResults?.map((subject) => {
                       const percentage =
                         subject.questionCount > 0
                           ? (subject.correct / subject.questionCount) * 100
@@ -447,15 +456,14 @@ export function ExamResultsTable({
                 </Table>
               </div>
 
-              {/* BACKEND EKSIK #3: topicResults.correct/questionNumbers DTO'da yok.
-                  Konu bazli analiz bolumu backend tamamlanana kadar bos/0 degerlerle gorunur. */}
-              {selectedExam.subjectResults?.some(
+              {/* BACKEND #3: topicResults.correct/questionNumbers artik DTO'da mevcut. */}
+              {detailExam.subjectResults?.some(
                 (s) => s.topicDetails?.length
               ) && (
                 <div>
                   <h4 className="font-semibold mb-3">Konu Bazlı Analiz</h4>
                   <div className="space-y-2">
-                    {selectedExam.subjectResults
+                    {detailExam.subjectResults
                       .filter((s) => s.topicDetails?.length)
                       .map((subject) => (
                         <Collapsible key={subject.subjectName}>
@@ -495,9 +503,94 @@ export function ExamResultsTable({
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sinavi Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu sinavi silmek istediginize emin misiniz? Bu islem geri alinamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Iptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteExam}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteExam.isPending ? "Siliniyor..." : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
+  );
+}
+
+// Ozet listede sections gelmedigi icin ders kirilimini detay endpoint'inden ceker
+function ExamSubjectsInline({ examId }: { examId: string }) {
+  const { data, isLoading } = useExamDetail(examId, true);
+  const subjects = data?.subjectResults ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+    );
+  }
+
+  if (subjects.length === 0) {
+    return (
+      <p className="py-2 text-center text-sm text-muted-foreground">
+        Ders detayı bulunamadı.
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid gap-2">
+      {subjects.map((subject) => {
+        const subjectPercentage =
+          subject.questionCount > 0
+            ? (subject.correct / subject.questionCount) * 100
+            : 0;
+
+        return (
+          <div
+            key={subject.subjectName}
+            className="flex items-center gap-4 py-2 px-3 rounded-md bg-background"
+          >
+            <div className="w-40 font-medium text-sm truncate">
+              {subject.subjectName}
+            </div>
+            <div className="flex-1 flex items-center gap-2">
+              <Progress value={subjectPercentage} className="h-2 flex-1" />
+              <span className="text-xs text-muted-foreground w-12">
+                %{subjectPercentage.toFixed(0)}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-success w-8 text-center">
+                {subject.correct}
+              </span>
+              <span className="text-destructive w-8 text-center">
+                {subject.wrong}
+              </span>
+              <span className="text-muted-foreground w-8 text-center">
+                {subject.empty}
+              </span>
+              <Badge variant="outline" className="font-mono">
+                {subject.net.toFixed(2)}
+              </Badge>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

@@ -45,3 +45,45 @@ export interface CreateLessonRequest {
   description?: string;
   examTypes: number[];
 }
+
+export interface UpdateLessonRequest {
+  name?: string;
+  code?: number;
+  description?: string;
+  examTypes?: number[];
+  isActive?: boolean;
+}
+
+export interface CreateUnitRequest {
+  code: number;
+  name: string;
+  order: number;
+  description?: string;
+  examTypes: number[];
+}
+
+export interface UpdateUnitRequest {
+  code?: number;
+  name?: string;
+  order?: number;
+  description?: string;
+  examTypes?: number[];
+  isActive?: boolean;
+}
+
+export interface CreateTopicRequest {
+  topicCode: number;
+  name: string;
+  order: number;
+  description?: string;
+  examTypes: number[];
+}
+
+export interface UpdateTopicRequest {
+  topicCode?: number;
+  name?: string;
+  order?: number;
+  description?: string;
+  examTypes?: number[];
+  isActive?: boolean;
+}

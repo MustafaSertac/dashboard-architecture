@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  useFocusSessions,
+  useCreateFocusSession,
+} from "@/modules/study-tasks/hooks/useStudyTasks";
 
 import {
   Play,
@@ -22,21 +26,33 @@ import { cn } from "@/lib/utils";
 
 interface StudyTimerCardProps {
   dailyGoalHours?: number;
+  taskId?: string;
 }
 
 export function StudyTimerCard({
   dailyGoalHours = 6,
+  taskId,
 }: StudyTimerCardProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const [isRunning, setIsRunning] = useState(false);
 
-  const [todayStudiedSeconds, setTodayStudiedSeconds] =
-    useState(0);
-
   const [addMinutes, setAddMinutes] = useState("15");
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // BACKEND #10 (Dusuk) TAMAMLANDI: focus session tracking.
+  // localStorage yerine focus-session endpoint'i kullanilir.
+  const today = new Date().toISOString().split("T")[0];
+  const { data: focusSessions } = useFocusSessions(taskId ?? "", today);
+  const createFocusSession = useCreateFocusSession(taskId ?? "");
+
+  const todayStudiedSeconds = useMemo(() => {
+    return (focusSessions ?? []).reduce(
+      (sum, s) => sum + (s.durationMinutes || 0) * 60,
+      0
+    );
+  }, [focusSessions]);
 
   const dailyGoalSeconds = dailyGoalHours * 3600;
 
@@ -52,52 +68,6 @@ export function StudyTimerCard({
     (totalStudiedSeconds / dailyGoalSeconds) * 100,
     100
   );
-
-  /* ========================================= */
-  /* LOAD STORAGE */
-  /* ========================================= */
-
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-
-    const saved =
-      localStorage.getItem("studyTimerData");
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-
-      if (parsed.date === today) {
-        setTodayStudiedSeconds(
-          parsed.studiedSeconds || 0
-        );
-
-        setElapsedSeconds(
-          parsed.currentElapsed || 0
-        );
-      }
-    }
-  }, []);
-
-  /* ========================================= */
-  /* SAVE STORAGE */
-  /* ========================================= */
-
-  const saveState = useCallback(() => {
-    const today = new Date().toISOString().split("T")[0];
-
-    localStorage.setItem(
-      "studyTimerData",
-      JSON.stringify({
-        date: today,
-        studiedSeconds: todayStudiedSeconds,
-        currentElapsed: elapsedSeconds,
-      })
-    );
-  }, [todayStudiedSeconds, elapsedSeconds]);
-
-  useEffect(() => {
-    saveState();
-  }, [elapsedSeconds, saveState]);
 
   /* ========================================= */
   /* TIMER */
@@ -152,6 +122,10 @@ export function StudyTimerCard({
   };
 
   const getMessage = () => {
+    if (!taskId) {
+      return "Süreölçer için bir görev seçin";
+    }
+
     if (progressPercentage >= 100) {
       return "Tebrikler! Günlük hedef tamamlandı 🚀";
     }
@@ -183,24 +157,15 @@ export function StudyTimerCard({
     setIsRunning(false);
 
     if (elapsedSeconds > 0) {
-      const updated =
-        todayStudiedSeconds +
-        elapsedSeconds;
-
-      setTodayStudiedSeconds(updated);
-
-      const today = new Date()
-        .toISOString()
-        .split("T")[0];
-
-      localStorage.setItem(
-        "studyTimerData",
-        JSON.stringify({
-          date: today,
-          studiedSeconds: updated,
-          currentElapsed: 0,
-        })
+      const durationMinutes = Math.max(
+        1,
+        Math.round(elapsedSeconds / 60)
       );
+
+      if (taskId) {
+        // BACKEND #10: focus session kaydet.
+        createFocusSession.mutate({ durationMinutes });
+      }
     }
 
     setElapsedSeconds(0);
@@ -604,6 +569,7 @@ export function StudyTimerCard({
                 variant="outline"
                 size="icon"
                 onClick={handleReset}
+                aria-label="Sıfırla"
                 className="
                   size-12
                   rounded-full
@@ -619,11 +585,14 @@ export function StudyTimerCard({
           <Button
   size="icon"
   onClick={handlePlayPause}
+  disabled={!taskId}
+  aria-label={isRunning ? "Duraklat" : "Başlat"}
   className={cn(
     "size-16 rounded-full shadow-2xl transition-all",
     isRunning
       ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/30"
-      : "bg-primary hover:bg-primary/90 shadow-primary/30"
+      : "bg-primary hover:bg-primary/90 shadow-primary/30",
+    !taskId && "opacity-50 cursor-not-allowed"
   )}
 >
   {isRunning ? (

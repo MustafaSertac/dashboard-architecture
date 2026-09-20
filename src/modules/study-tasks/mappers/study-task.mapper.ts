@@ -1,49 +1,26 @@
 import type { Task } from "@/lib/types";
 import type { StudyTaskDTO, CreateTaskRequest } from "@/modules/study-tasks/types/study-task.types";
 
-interface MapContext {
-  // BACKEND EKSIK #1 (Kritik): StudyTaskDTO.dueDate yok.
-  // dueDate backend'den gelene kadar cagiran taraf (hook) bir fallback saglar:
-  //   - today endpoint'i icin: bugunun tarihi
-  //   - upcoming endpoint'i icin: bugun + 1 (kullanici tarafindan filtrelenir)
-  //   - byStudentRange icin: query'deki ilgili gun
-  fallbackDate?: string;
-  // BACKEND EKSIK #4 (Yuksek): studentId/teacherId yok DTO'da.
-  // Hook studentId'yi zaten biliyor; onu map context'inde geciriyoruz.
-  fallbackStudentId?: string;
-}
-
-export function mapStudyTaskToUi(
-  dto: StudyTaskDTO,
-  ctx: MapContext = {}
-): Task {
+export function mapStudyTaskToUi(dto: StudyTaskDTO): Task {
   const isCompleted = dto.isCompleted;
   const hasProgress = dto.totalQuestions > 0 && !isCompleted;
 
-  // dueDate: backend geliyorsa kullan, yoksa fallback'e dus.
-  const dueDate =
-    dto.dueDate ??
-    ctx.fallbackDate ??
-    new Date().toISOString().split("T")[0];
-
   return {
     id: dto.taskId,
-    // BACKEND EKSIK #4: DTO'da studentId yok. Hook cagiran StudentId'yi gecirir.
-    studentId: dto.studentId ?? ctx.fallbackStudentId ?? "",
-    // BACKEND EKSIK #4: DTO'da teacherId yok. Bos birakilir (UI tarafinda kullanilmiyor).
+    studentId: dto.studentId,
     teacherId: dto.teacherId ?? "",
-    dueDate,
+    dueDate: dto.dueDate,
     subject: dto.lessonTitle,
     topic: dto.topicTitle,
     questionCount: dto.targetQuestions,
     completedQuestions: dto.totalQuestions,
     correctAnswers: dto.correctCount,
     wrongAnswers: dto.wrongCount,
+    emptyAnswers: dto.emptyCount,
     hoursStudied: dto.studiedHours,
     status: isCompleted ? "completed" : hasProgress ? "in-progress" : "pending",
-    // BACKEND EKSIK #4: createdAt/updatedAt yok. ISO simdi fallback.
-    createdAt: dto.createdAt ?? new Date().toISOString(),
-    updatedAt: dto.updatedAt ?? new Date().toISOString(),
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt ?? dto.createdAt,
   };
 }
 

@@ -41,6 +41,15 @@ export interface CourseStats {
   branches: BranchStats[];
 }
 
+// BACKEND #8 (Orta) TAMAMLANDI: ?perSubject=true ile ders bazli kirilim.
+export interface PerSubjectStats {
+  subject: string;
+  totalHours: number;
+  totalQuestions: number;
+  completedCount: number;
+  pendingCount: number;
+}
+
 export interface MonthlyAnalyticsDTO {
   year: number;
   month: number;
@@ -51,6 +60,7 @@ export interface MonthlyAnalyticsDTO {
     pendingCount: number;
   };
   courses: CourseStats[];
+  perSubjectStats?: PerSubjectStats[];
 }
 
 export interface DashboardOverviewDTO {
