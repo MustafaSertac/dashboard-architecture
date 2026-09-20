@@ -1,79 +1,155 @@
-# Frontend Entegrasyon Durumu
+# Frontend Güncelleme Rehberi — Backend Tamamlandı
 
-> **Durum:** Backend tamamlandı. Tüm fallback'ler (mock/simüle) kaldırıldı, frontend gerçek API'ye tam bağlı.
->
-> **Tarih:** 07.09.2026
-> **İlgili dokümanlar:** `docs/BackendTalep.md` (API sözleşmesi), `docs/TEST_SENARYOLARI.md` (testler), `src/app/FRONTEND_INTEGRATION.md` (tam API referansı)
+> **Tarih:** 17.08.2026
+> **Kapsam:** Bu oturumda backend'e eklenen endpoint/DTO'ların frontend tarafında nasıl karşılanacağı.
+> **Muhatap:** Frontend Geliştirme Ekibi
+> **Referans:** `FRONTEND_INTEGRATION.md` (tam API sözleşmesi), `docs/BackendTalep.md` (orijinal talepler)
 
 ---
 
-## 1. Entegrasyon Özeti
+## Bu oturumda backend'e eklenenler
 
-| Modül | Durum |
-|-------|-------|
-| Auth (login, register, logout, refresh, profile, forgot-password 3-adım) | ✅ Gerçek API |
-| Study Tasks (today, upcoming, range, create, update, delete, complete, batch, log-study) | ✅ Gerçek API |
-| Focus session (create/get) | ✅ Gerçek API |
-| Exams (list, detail, trends, trendsAll, create, update, delete) | ✅ Gerçek API |
-| Analytics (weekly, monthly, yearly, dashboard, perSubject) | ✅ Gerçek API |
-| Teacher öğrenci listesi | ✅ Gerçek API (`GET /teachers/{id}/students`) |
-| Teacher öğrenci yönetimi (ekle/kaldır) | ✅ Gerçek API |
-| Notlar (Notes) | ✅ Gerçek API |
-| Lessons / Units / Topics (TaskModal bağlı) | ✅ Gerçek API (kademeli seçim: ders→ünite→konu) |
-| Profil sayfası | ✅ Gerçek API (`GET/PUT /auth/profiles`) |
+| # | Talep | Backend durumu |
+|---|-------|----------------|
+| #5 | Not/Feedback | ✅ `GET/POST/DELETE /api/v1.0/students/{studentId}/notes` |
+| #6 | Toplu görev onaylama | ✅ `POST /api/v1.0/study-tasks/complete/batch` |
+| #7 | Toplu sınav trend | ✅ `GET /api/v1.0/exams/trends/all?examCode=&limit=&teacherId=` |
+| #8 | Ders bazlı analiz | ✅ `?perSubject=true` + `perSubjectStats` |
+| #9 | Forgot-password email | ✅ 3 endpoint (request/verify/reset) + Outlook SMTP |
+| #10 | Focus session | ✅ `POST /study-tasks/{taskId}/focus-session` + `GET .../focus-sessions` |
+| — | (önceki oturum) | #1 `dueDate`, #3 `correct`+`questionNumbers`, #4 ek alanlar, H-1 `teachter`→`teacher` |
 
-## 2. Bu Oturumda Yapılan Değişiklikler
+**Not:** #2 (öğretmen-öğrenci listesi) backend'te zaten `GET /teachers/{teacherId}/students` olarak mevcut. Frontend'in `students.listByTeacher`'ı bu rotaya güncellemesi gerekiyor (aşağıda).
 
-### Lessons/Units/Topics entegrasyonu
-- `lesson.service.ts` → 13 metod (list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic)
-- `useLessons.ts` → 9 mutation hook (create/update/delete lesson/unit/topic)
-- `TaskModal` → hardcoded `TYT_SUBJECTS`/`TOPICS_BY_SUBJECT` kaldırıldı; gerçek `useLessons`/`useUnits`/`useTopics` ile kademeli seçim
-- `CreateTaskRequest` → gerçek `lessonId`/`unitId`/`topicId` gönderilir
+---
 
-### Teacher öğrenci yönetimi
-- `teacher.service.ts` → `addStudent`/`removeStudent` eklendi
-- `student-list.tsx` → "Öğrenci Ekle" dialog + "Kaldır" AlertDialog
+## Frontend'de yapılacak değişiklikler
 
-### Profil sayfası
-- Yeni `/dashboard/profile` sayfası → `useProfile`/`useUpdateProfile`
-- Sidebar'a "Profil" linki eklendi
+### #2 — Öğretmen-öğrenci listesi (route güncelle)
 
-### Exam UI tamamlama
-- `exam-results-table.tsx` → silme butonu (AlertDialog) + `useDeleteExam`
-- Bug fix: `examCode: 0` kaldırıldı (status-only update)
+Backend route `GET /api/v1.0/teachers/{teacherId}/students` (geri dönen `TeacherStudentDTO[]` değişmedi).
 
-### Direkt entegrasyon temizliği
-- `study-task.mapper.ts` → `MapContext`/fallback'ler kaldırıldı; DTO'dan doğrudan
-- `study-task.types.ts` → `studentId`/`dueDate`/`createdAt` zorunlu alanlar
-- `exam.mapper.ts` → `correct ?? 0`/`questionNumbers ?? []` fallback'leri kaldırıldı
-- `analytics.mapper.ts` → courses-derivation fallback kaldırıldı
+**Yapılacak:**
+- `src/lib/api/endpoints.ts` içinde `students.listByTeacher` → `GET /teachers/{teacherId}/students` olarak güncelle.
+- `src/modules/teacher/services/teacher.service.ts` içindeki mock fallback `catch` bloğunu kaldır.
+- `src/lib/mock/mock-users.ts` + `src/lib/mock/mock-data.ts` artık güvenle silinebilir.
 
-### Fallback kaldırma (önceki oturum)
-- `teacher.service.ts` → mock fallback kaldırıldı
-- `note.service.ts` → simüle fallback kaldırıldı
-- `useStudyTasks.ts` (`useBulkCompleteTasks`) → per-task fallback kaldırıldı
-- `src/lib/mock/mock-data.ts` + `mock-users.ts` → silindi
+### #5 — Not/Feedback (mock kaldır)
 
-### Yeni özellik bağlama (önceki oturum)
-- **#7** Toplu sınav trend: `useExamTrendsAll` + `ExamTrendsChart` "all students" modu
-- **#8** Ders bazlı analiz: `perSubject=true` param + `perSubjectStats` tüketimi
-- **#9** Forgot-password 3-adım: `/forgot-password` + `/reset-password`
-- **#10** Focus session: `StudyTimerCard` localStorage → focus-session endpoint
-- **#6** Toplu Onayla butonu: `useBulkCompleteTasks`
-- **H-1** `teachter` → `teacher` düzeltildi
+**Endpoint'ler:**
+```
+POST   /api/v1.0/students/{studentId}/notes   { category, note }   -> NoteDTO (201)
+GET    /api/v1.0/students/{studentId}/notes                          -> NoteDTO[]
+DELETE /api/v1.0/students/{studentId}/notes/{noteId}                 -> { message }
+```
+- `category`: `feedback` | `performance` | `improvement` | `praise`
+- `note`: max 2000 karakter
+- `teacherId` backend tarafından JWT claim'den doldurulur (body'ye koymaya gerek yok)
 
-### Loading & Error states
-- `src/components/ui/error-state.tsx` (HTTP status + hata kodu + mesaj + "Tekrar Dene")
-- Tüm dashboard/task/exam/analytics/teacher component'lerine loading (skeleton) + error (ErrorState)
+**Yapılacak:**
+- `src/modules/notes/services/note.service.ts` içindeki simüle `catch` bloklarını (bellek-içi depo + `setTimeout`) kaldır.
 
-## 3. Test Altyapısı
+### #6 — Toplu görev onaylama (bulk complete)
 
-- Vitest + @testing-library/react + jsdom kuruldu (`npm run test:run`)
-- 15 test dosyası, ~65 test (service + mapper + component)
-- Detay: `docs/TEST_SENARYOLARI.md`
+**Endpoint:**
+```
+POST /api/v1.0/study-tasks/complete/batch   { taskIds: string[] }
+-> { completedCount: number, failedIds: string[] }
+```
+- `failedIds`: bulunamayan veya zaten tamamlanmış task'ların ID'leri.
 
-## 4. Bilinen Kapsam Dışı
+**Yapılacak:**
+- `src/modules/study-tasks/hooks/useStudyTasks.ts` (`useBulkCompleteTasks`) ve `study-task.service.ts` (`completeBatch`) içindeki per-task fallback'i kaldır.
+- `TeacherActions` "Toplu Onayla" butonuna `useBulkCompleteTasks` bağla (seçili task state'i ile birlikte — kapsam dışı kalmıştı).
 
-- Lessons/Units/Topics admin CRUD UI (service/hook hazır; TaskModal'a bağlı; ayrı yönetim sayfası yok)
-- StudyTimerCard çoklu-görev toplama (tek task'a bağlı)
-- `eslint` projede kurulu değil
+### #7 — Toplu sınav trend (all students)
+
+**Endpoint:**
+```
+GET /api/v1.0/exams/trends/all?examCode=10&limit=10&teacherId=...
+-> StudentTrendDTO[]
+```
+- `teacherId` opsiyonel; verilmezse tüm öğrenciler, verilirse o öğretmenin öğrencileri.
+- `StudentTrendDTO = { studentId, studentName, exams: ExamSummaryDTO[] }`
+
+**Yapılacak:**
+- `src/components/exams/exam-trends-chart.tsx` içinde "all students" karşılaştırma modunu geri ekle; `endpoints.exams.trendsAll` kullan.
+
+### #8 — Ders bazlı analiz
+
+**Endpoint değişikliği:**
+```
+GET /api/v1.0/analytics/monthly?studentId=X&year=Y&month=M&perSubject=true
+GET /api/v1.0/analytics/yearly?studentId=X&year=Y&perSubject=true
+```
+- `perSubject=true` ise response'a `perSubjectStats: PerSubjectStats[]` eklenir:
+  `{ subject, totalHours, totalQuestions, completedCount, pendingCount }`
+
+**Yapılacak:**
+- `useMonthlyAnalytics` / `useYearlyAnalytics` çağrılarına `perSubject=true` query param'ı ekle.
+- `MonthlyAnalytics` / `YearlyAnalytics` bileşenlerinde `perSubjectStats`'ı tüket.
+
+### #9 — Forgot-password email akışı
+
+**Yeni akış (3 endpoint):**
+```
+POST /api/v1.0/auth/forgot-password/request   { email }              -> { message }  (email yoksa bile 200)
+POST /api/v1.0/auth/forgot-password/verify    { token }              -> { valid: boolean }
+POST /api/v1.0/auth/forgot-password/reset     { token, newPassword } -> { message }
+```
+- `request` → backend Outlook SMTP üzerinden token içeren link gönderir.
+- Link formatı: `{EmailSettings.ResetUrlBase}?token=...` (dev: `http://localhost:3000/reset-password?token=...`)
+- Token 30 dk geçerli, tek kullanımlık.
+
+**Yapılacak:**
+- `src/app/forgot-password/page.tsx` → önce email girişi + `request`, sonra token doğrulama (`verify`) ve yeni şifre + `reset` akışına böl.
+- Eski `POST /auth/forgot-password` (`{email, newPassword}`) **deprecated**; `Deprecation: true` header'ı döner. Geçiş tamamlanınca kaldırılacak.
+
+### #10 — Çalışma sayacı (focus session)
+
+**Endpoint'ler:**
+```
+POST /api/v1.0/study-tasks/{taskId}/focus-session
+     { durationMinutes, startedAt?, endedAt? }   -> FocusSessionDTO (201)
+
+GET  /api/v1.0/study-tasks/{taskId}/focus-sessions?date=yyyy-MM-dd
+                                                 -> FocusSessionDTO[]
+```
+- `FocusSessionDTO = { id, taskId, studentId, date, durationMinutes, startedAt, endedAt? }`
+- `studentId` backend tarafından task'tan çözülür.
+
+**Yapılacak:**
+- `StudyTimerCard` artık localStorage yerine bu endpoint'leri kullanabilir.
+
+---
+
+## Backend tarafından dikkat edilecekler (deploy)
+
+1. **Migration:** 2 yeni migration uygulanacak (startup'ta otomatik):
+   - `AddNotesAndPasswordResetTokens` (UserDb)
+   - `AddFocusSessions` (TaskDb)
+2. **EmailSettings** (Outlook SMTP) `appsettings.json` veya user-secrets'e eklenmeli:
+   ```json
+   "EmailSettings": {
+     "SmtpHost": "smtp.office365.com",
+     "SmtpPort": 587,
+     "SmtpUser": "sizin@outlook.com",
+     "SmtpPass": "****",
+     "FromEmail": "sizin@outlook.com",
+     "FromName": "ProKoc",
+     "ResetUrlBase": "https://app.prokoc.com/reset-password"
+   }
+   ```
+3. **MailKit** paketi `ProKocCore`'a eklendi (Outlook SMTP gönderimi için).
+
+---
+
+## Fallback kaldırma sırası
+
+Aşağıdaki fallback'ler artık güvenle kaldırılabilir:
+
+1. `teacher.service.ts` → mock fallback (#2)
+2. `note.service.ts` → simüle fallback (#5)
+3. `study-task.service.ts` / `useStudyTasks.ts` → `completeBatch` per-task fallback (#6)
+4. `src/lib/mock/mock-data.ts` + `src/lib/mock/mock-users.ts` → tamamen sil
+5. Mapper'lardaki `fallback*` parametreleri (opsiyonel)
