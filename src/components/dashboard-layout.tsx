@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { StudyTimerWidget } from "@/components/study/study-timer-widget";
 import {
   LayoutDashboard,
   FileText,
@@ -174,6 +175,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <span className="text-lg font-semibold">EduCoach</span>
           </div>
           <div className="flex items-center gap-2">
+            <StudyTimerWidget />
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -212,7 +214,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden h-16 items-center justify-end border-b border-border bg-background px-6 lg:flex">
+        <header className="hidden h-16 items-center justify-end gap-3 border-b border-border bg-background px-6 lg:flex">
+          <StudyTimerWidget />
           <ThemeToggle />
         </header>
 

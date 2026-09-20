@@ -40,11 +40,16 @@ export interface ExamResult {
   date: string;
   examType: ExamType;
   examName?: string; // Örn: "ÖSYM 2024 Deneme 1"
-  // Genel toplam
+  scoreType?: number | null; // AYT puan türü (SAY/EA/SÖZ)
+  // Genel toplam (tüm sorular)
   totalCorrect: number;
   totalWrong: number;
   totalEmpty: number;
   totalNet: number;
+  // Puanlanan 80 sorunun ham toplamı (AYT)
+  scoreCorrect?: number;
+  scoreWrong?: number;
+  scoreBlank?: number;
   // Ders bazlı sonuçlar (zorunlu)
   subjectResults: SubjectResult[];
   // Analiz tamamlandı mı
@@ -69,6 +74,7 @@ export interface Task {
   subject: string;
   topic: string;
   questionCount: number;
+  targetHours: number;
   completedQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;

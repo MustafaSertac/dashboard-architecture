@@ -23,6 +23,21 @@ export function roleToApi(r: UiUserRole): number {
 export type ExamCode = 10 | 11 | 12;
 export const EXAM_CODE = { TYT: 10, AYT: 11, Both: 12 } as const;
 
+// Puan türü (yalnızca AYT) — SAY=1, EA=2, SOZ=3, DIL=4 (DIL desteklenmez)
+export type ScoreType = 1 | 2 | 3 | 4;
+export const SCORE_TYPE = { SAY: 1, EA: 2, SOZ: 3, DIL: 4 } as const;
+export const SCORE_TYPE_LABELS: Record<number, string> = {
+  1: "SAY",
+  2: "EA",
+  3: "SÖZ",
+  4: "DİL",
+};
+
+export function scoreTypeLabel(scoreType?: number | null): string | null {
+  if (scoreType === null || scoreType === undefined) return null;
+  return SCORE_TYPE_LABELS[scoreType] ?? null;
+}
+
 export enum ExamStatus {
   Draft = 0,
   Submitted = 1,

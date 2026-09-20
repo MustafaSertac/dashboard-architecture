@@ -1,14 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  useFocusSessions,
-  useCreateFocusSession,
-} from "@/modules/study-tasks/hooks/useStudyTasks";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useStudyTimer,
+  useTimerNow,
+} from "@/modules/study-tasks/hooks/useStudyTimer";
+import {
+  useStudyTimerStore,
+  getLiveSeconds,
+} from "@/modules/study-tasks/store/study-timer.store";
+import type { Task } from "@/lib/types";
 
 import {
   Play,
@@ -20,76 +32,83 @@ import {
   Target,
   Clock3,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 interface StudyTimerCardProps {
   dailyGoalHours?: number;
-  taskId?: string;
+  tasks?: Task[];
 }
 
 export function StudyTimerCard({
   dailyGoalHours = 6,
-  taskId,
+  tasks,
 }: StudyTimerCardProps) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  const [isRunning, setIsRunning] = useState(false);
-
   const [addMinutes, setAddMinutes] = useState("15");
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const taskList = tasks ?? [];
+  const hasTasks = taskList.length > 0;
 
-  // BACKEND #10 (Dusuk) TAMAMLANDI: focus session tracking.
-  // localStorage yerine focus-session endpoint'i kullanilir.
-  const today = new Date().toISOString().split("T")[0];
-  const { data: focusSessions } = useFocusSessions(taskId ?? "", today);
-  const createFocusSession = useCreateFocusSession(taskId ?? "");
+  const taskId = useStudyTimerStore((s) => s.taskId);
+  const isRunning = useStudyTimerStore((s) => s.isRunning);
+  const accumulatedSeconds = useStudyTimerStore((s) => s.accumulatedSeconds);
+  const segmentStartedAt = useStudyTimerStore((s) => s.segmentStartedAt);
 
-  const todayStudiedSeconds = useMemo(() => {
-    return (focusSessions ?? []).reduce(
-      (sum, s) => sum + (s.durationMinutes || 0) * 60,
-      0
-    );
-  }, [focusSessions]);
+  const selectedTask = taskList.find((t) => t.id === taskId) ?? null;
 
-  const dailyGoalSeconds = dailyGoalHours * 3600;
+  const { start, pauseAndPersist, addAndPersist } = useStudyTimer();
+  useTimerNow(isRunning);
 
-  const totalStudiedSeconds =
-    todayStudiedSeconds + elapsedSeconds;
+  // Görev listesi değişince geçerli seçimi garanti et
+  useEffect(() => {
+    const list = tasks ?? [];
+    if (list.length === 0) {
+      if (useStudyTimerStore.getState().taskId) {
+        useStudyTimerStore.getState().clear();
+      }
+      return;
+    }
+    if (!taskId || !list.some((t) => t.id === taskId)) {
+      const first = list[0];
+      useStudyTimerStore
+        .getState()
+        .selectTask(first.id, `${first.subject} - ${first.topic}`);
+    }
+  }, [tasks, taskId]);
+
+  const liveSeconds = getLiveSeconds(
+    { accumulatedSeconds, isRunning, segmentStartedAt },
+    Date.now()
+  );
+
+  // Büyük sayaç: seçili görevin birikmiş süresi
+  const selectedTaskSeconds =
+    (selectedTask?.hoursStudied ?? 0) * 3600 + liveSeconds;
+
+  // Günlük ilerleme: o günün TÜM görevlerinin toplam hedef ve kayıtlı saatleri
+  const dailyTargetSeconds = taskList.reduce(
+    (sum, t) => sum + (t.targetHours ?? 0) * 3600,
+    0
+  );
+  const dailyStudiedSeconds =
+    taskList.reduce((sum, t) => sum + (t.hoursStudied ?? 0) * 3600, 0) +
+    liveSeconds;
+
+  // Hedef girilmemişse sabit günlük hedefe düş
+  const effectiveGoalSeconds =
+    dailyTargetSeconds > 0 ? dailyTargetSeconds : dailyGoalHours * 3600;
 
   const remainingSeconds = Math.max(
     0,
-    dailyGoalSeconds - totalStudiedSeconds
+    effectiveGoalSeconds - dailyStudiedSeconds
   );
 
   const progressPercentage = Math.min(
-    (totalStudiedSeconds / dailyGoalSeconds) * 100,
+    (dailyStudiedSeconds / effectiveGoalSeconds) * 100,
     100
   );
-
-  /* ========================================= */
-  /* TIMER */
-  /* ========================================= */
-
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning]);
 
   /* ========================================= */
   /* HELPERS */
@@ -104,7 +123,7 @@ export function StudyTimerCard({
       .toString()
       .padStart(2, "0");
 
-    const s = (seconds % 60)
+    const s = Math.floor(seconds % 60)
       .toString()
       .padStart(2, "0");
 
@@ -123,7 +142,9 @@ export function StudyTimerCard({
 
   const getMessage = () => {
     if (!taskId) {
-      return "Süreölçer için bir görev seçin";
+      return hasTasks
+        ? "Süreölçer için bir görev seçin"
+        : "Önce bir görev oluşturmalısın";
     }
 
     if (progressPercentage >= 100) {
@@ -150,34 +171,23 @@ export function StudyTimerCard({
   /* ========================================= */
 
   const handlePlayPause = () => {
-    setIsRunning((prev) => !prev);
+    if (isRunning) {
+      pauseAndPersist();
+    } else {
+      start();
+    }
   };
 
+  // Sıfırla: çalışıyorsa durdurur ve geçen süreyi göreve kaydeder
   const handleReset = () => {
-    setIsRunning(false);
-
-    if (elapsedSeconds > 0) {
-      const durationMinutes = Math.max(
-        1,
-        Math.round(elapsedSeconds / 60)
-      );
-
-      if (taskId) {
-        // BACKEND #10: focus session kaydet.
-        createFocusSession.mutate({ durationMinutes });
-      }
-    }
-
-    setElapsedSeconds(0);
+    pauseAndPersist();
   };
 
   const handleAddTime = () => {
     const value = parseInt(addMinutes || "0");
 
     if (value > 0) {
-      setElapsedSeconds(
-        (prev) => prev + value * 60
-      );
+      addAndPersist(value * 60);
     }
   };
 
@@ -185,9 +195,7 @@ export function StudyTimerCard({
     const value = parseInt(addMinutes || "0");
 
     if (value > 0) {
-      setElapsedSeconds((prev) =>
-        Math.max(0, prev - value * 60)
-      );
+      useStudyTimerStore.getState().addSeconds(-value * 60);
     }
   };
 
@@ -196,7 +204,7 @@ export function StudyTimerCard({
   /* ========================================= */
 
   const { h, m, s } =
-    getTimeParts(elapsedSeconds);
+    getTimeParts(selectedTaskSeconds);
 
   const size = 190;
 
@@ -235,6 +243,23 @@ export function StudyTimerCard({
       />
 
       <CardContent className="relative p-6">
+        {!hasTasks && (
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-warning">
+              <AlertCircle className="size-5 shrink-0" />
+              <span className="font-medium">
+                Önce bir görev oluşturmalısın
+              </span>
+            </div>
+            <Button asChild size="sm">
+              <a href="/dashboard/tasks">
+                <Plus className="mr-1 size-4" />
+                Görev Oluştur
+              </a>
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1fr_1fr] gap-8 items-center">
           {/* ========================================= */}
           {/* LEFT */}
@@ -256,9 +281,54 @@ export function StudyTimerCard({
               </h2>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-3">
               Disiplin, başarıyı getirir.
             </p>
+
+            {hasTasks && (
+              <div className="mb-5 rounded-2xl border border-border/60 bg-timer-card-secondary/70 p-4 backdrop-blur-xl">
+                <p className="text-xs text-muted-foreground">Seçili Görev</p>
+                {selectedTask ? (
+                  <>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {selectedTask.subject}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedTask.topic}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-medium text-muted-foreground">
+                    Görev seçilmedi
+                  </p>
+                )}
+
+                {taskList.length > 1 && (
+                  <Select
+                    value={taskId ?? undefined}
+                    onValueChange={(v) => {
+                      const task = taskList.find((t) => t.id === v);
+                      if (task) {
+                        useStudyTimerStore
+                          .getState()
+                          .selectTask(task.id, `${task.subject} - ${task.topic}`);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="mt-3 h-8 bg-background/60">
+                      <SelectValue placeholder="Görev seç" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taskList.map((task) => (
+                        <SelectItem key={task.id} value={task.id}>
+                          {task.subject} - {task.topic}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
 
             {/* STATS */}
             <div className="grid grid-cols-3 gap-3 mb-5">
@@ -280,7 +350,7 @@ export function StudyTimerCard({
                 </p>
 
                 <h4 className="text-foreground font-semibold mt-1">
-                  {dailyGoalHours} Saat
+                  {formatDuration(effectiveGoalSeconds)}
                 </h4>
               </div>
 
@@ -303,7 +373,7 @@ export function StudyTimerCard({
 
                 <h4 className="text-foreground font-semibold mt-1">
                   {formatDuration(
-                    totalStudiedSeconds
+                    dailyStudiedSeconds
                   )}
                 </h4>
               </div>
@@ -637,13 +707,12 @@ export function StudyTimerCard({
               <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                 <span>
                   {formatDuration(
-                    totalStudiedSeconds
+                    dailyStudiedSeconds
                   )}
                 </span>
 
                 <span>
-                  {dailyGoalHours}
-                  s hedef
+                  {formatDuration(effectiveGoalSeconds)} hedef
                 </span>
               </div>
             </div>

@@ -121,6 +121,41 @@ GET  /api/v1.0/study-tasks/{taskId}/focus-sessions?date=yyyy-MM-dd
 **Yapılacak:**
 - `StudyTimerCard` artık localStorage yerine bu endpoint'leri kullanabilir.
 
+### #11 — Sınav puan türü (scoreType) [YENİ]
+
+**Enum:**
+```
+scoreType: SAY = 1, EA = 2, SOZ = 3, DIL = 4   (DIL desteklenmez)
+```
+
+**Request değişiklikleri:**
+- `CreateExamRequest` / `UpdateExamRequest` → yeni alan `scoreType?: number`.
+  - **AYT:** zorunlu (1/2/3).
+  - **TYT:** gönderilmemeli (gönderilirse `ERR_SCORE_TYPE_NOT_ALLOWED`).
+- AYT'de 160 soru girilir (4 bölüm tamamen dolu), `scoreType`'a göre yalnızca ilgili 80 soru puanlanır:
+  - SAY → Matematik + Fen Bilimleri
+  - EA → Türk Dili ve Edebiyatı – Sosyal Bilimler-1 + Matematik
+  - SÖZ → Türk Dili ve Edebiyatı – Sosyal Bilimler-1 + Sosyal Bilimler-2
+
+**Response değişiklikleri (`ExamDTO` / `ExamSummaryDTO`):**
+- `scoreType?: number | null`
+- `scoreCorrect`, `scoreWrong`, `scoreBlank` → puanlanan 80 sorunun ham toplamı
+- `totalCorrect/totalWrong/totalBlank` → tüm 160 soru (değişmedi)
+- `totalNet` → artık puan türüne göre 80 soruluk net
+
+**Yeni hata kodları:**
+- `ERR_SCORE_TYPE_REQUIRED` (400) — AYT için puan türü zorunlu
+- `ERR_INVALID_SCORE_TYPE` (400) — geçersiz puan türü
+- `ERR_SCORE_TYPE_NOT_ALLOWED` (400) — TYT'de gönderilmemeli
+
+**Yapıldı (frontend):**
+- `src/types/common.ts` → `ScoreType`, `SCORE_TYPE`, `scoreTypeLabel`.
+- `exam.types.ts` → request/DTO alanları.
+- `exam.mapper.ts` → DTO map + AYT'de `scoreType` gönderimi (TYT'de alan yok).
+- `exam-input-modal.tsx` → AYT'de puan türü Select'i (varsayılan **SAY**); seçilen puan türüne göre yalnızca ilgili 2 bölüm (80 soru) gösterilir ve gönderilir, diğer bölümler gizlenir.
+- `exam-config.ts` → `AYT_SCORE_TYPE_SECTIONS` + `getSectionsForScoreType()`.
+- `exam-results-table.tsx` → puan türü badge'i ve "Puanlanan Sorular (80)" bloğu.
+
 ---
 
 ## Backend tarafından dikkat edilecekler (deploy)

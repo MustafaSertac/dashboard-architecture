@@ -21,7 +21,7 @@
 | Exam service | `src/modules/exams/services/exam.service.test.ts` | list, detail(?detailed), trends, trendsAll(?teacherId), create, update, delete |
 | Lesson service | `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic |
 | API client | `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope (envelope doğrulama) |
-| StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | focus-session kaydı (reset → mutate), taskId yoksa disabled |
+| StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy` ile göreve yazılır; görev yoksa uyarı + disabled |
 | TaskModal | `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
 | Study-task mapper | `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan `dueDate`/`studentId`/`createdAt` (fallback yok) |
 | Exam mapper | `src/modules/exams/mappers/exam.mapper.test.ts` | topicResults `correct`/`questionNumbers` doğrudan DTO'dan |
@@ -150,7 +150,7 @@ npm test               # watch modunda
 ## 3. Bilinen Kapsam Dışı / Notlar
 
 - **Lessons/Units/Topics admin CRUD UI** yok — service/hook hazır, TaskModal'a bağlı; ders/ünite/konu yönetimi için ayrı sayfa yok
-- **StudyTimerCard** sadece dashboard'da bugünün ilk görevine bağlı; çoklu-görev toplama yok
+- **StudyTimerCard** dashboard'da bugünün görevlerine bağlı; seçili görev gösterilir, birden fazla görevde dropdown ile seçim yapılır, görev yoksa uyarı + "Görev Oluştur" butonu çıkar
 - **ExamTrendsChart** "all students" modu teacher dashboard'da gösteriliyor; tek öğrenci modu `studentId` prop'u ile
 - **Register sayfası** sadece Öğrenci/Öğretmen seçeneği sunar; Admin kaydı UI'dan yapılamaz (backend seed gerekir)
 - `npm run lint` çalışmıyor — `eslint` projede kurulu değil (`devDependencies`'e eklenebilir)

@@ -1097,6 +1097,20 @@ export const AYT_CONFIG: SubjectConfig[] = AYT_SECTIONS.flatMap((s) => s.subject
 export const TYT_TOTAL_QUESTIONS = TYT_CONFIG.reduce((sum, s) => sum + s.questionCount, 0); // 120
 export const AYT_TOTAL_QUESTIONS = AYT_CONFIG.reduce((sum, s) => sum + s.questionCount, 0); // 160
 
+// Puan türü -> puanlanan AYT bölümleri (80 soru)
+export const AYT_SCORE_TYPE_SECTIONS: Record<number, string[]> = {
+  1: ["Matematik", "Fen Bilimleri"], // SAY
+  2: ["Türk Dili ve Edebiyatı – Sosyal Bilimler-1", "Matematik"], // EA
+  3: ["Türk Dili ve Edebiyatı – Sosyal Bilimler-1", "Sosyal Bilimler-2"], // SÖZ
+};
+
+// AYT'de puan türüne göre yalnızca ilgili bölümleri döner
+export function getSectionsForScoreType(scoreType: number): ExamSectionConfig[] {
+  const names = AYT_SCORE_TYPE_SECTIONS[scoreType];
+  if (!names) return AYT_SECTIONS;
+  return AYT_SECTIONS.filter((section) => names.includes(section.name));
+}
+
 // Yardimci fonksiyonlar
 export function getExamSections(examType: "TYT" | "AYT"): ExamSectionConfig[] {
   return examType === "TYT" ? TYT_SECTIONS : AYT_SECTIONS;

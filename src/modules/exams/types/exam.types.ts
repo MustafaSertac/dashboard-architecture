@@ -1,4 +1,4 @@
-import type { ExamCode, ExamStatus } from "@/types/common";
+import type { ExamCode, ExamStatus, ScoreType } from "@/types/common";
 
 export interface ExamSectionDTO {
   id: string;
@@ -35,6 +35,7 @@ export interface ExamDTO {
   id: string;
   studentId: string;
   examCode: number;
+  scoreType?: number | null;
   examName: string;
   examDate: string;
   status: number;
@@ -44,6 +45,10 @@ export interface ExamDTO {
   totalCorrect: number;
   totalWrong: number;
   totalBlank: number;
+  // Puanlanan 80 sorunun ham toplamı (AYT)
+  scoreCorrect: number;
+  scoreWrong: number;
+  scoreBlank: number;
   sections: ExamSectionDTO[];
   createdAt: string;
   updatedAt?: string;
@@ -53,6 +58,7 @@ export interface ExamSummaryDTO {
   id: string;
   studentId: string;
   examCode: number;
+  scoreType?: number | null;
   examName: string;
   examDate: string;
   status: number;
@@ -61,6 +67,10 @@ export interface ExamSummaryDTO {
   totalCorrect: number;
   totalWrong: number;
   totalBlank: number;
+  // Puanlanan 80 sorunun ham toplamı (AYT)
+  scoreCorrect: number;
+  scoreWrong: number;
+  scoreBlank: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -101,6 +111,7 @@ export interface ExamSectionRequest {
 export interface CreateExamRequest {
   studentId: string;
   examCode: ExamCode;
+  scoreType?: ScoreType;
   examName: string;
   examDate: string;
   durationMinutes?: number;
@@ -112,6 +123,7 @@ export interface CreateExamRequest {
 export interface UpdateExamRequest {
   studentId?: string;
   examCode?: ExamCode;
+  scoreType?: ScoreType;
   examName?: string;
   examDate?: string;
   durationMinutes?: number;

@@ -13,6 +13,7 @@ export function mapStudyTaskToUi(dto: StudyTaskDTO): Task {
     subject: dto.lessonTitle,
     topic: dto.topicTitle,
     questionCount: dto.targetQuestions,
+    targetHours: dto.targetHours,
     completedQuestions: dto.totalQuestions,
     correctAnswers: dto.correctCount,
     wrongAnswers: dto.wrongCount,

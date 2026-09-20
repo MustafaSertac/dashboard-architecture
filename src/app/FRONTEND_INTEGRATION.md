@@ -197,6 +197,9 @@ const ExamCode = { TYT: 10, AYT: 11, Both: 12 } as const;
 // Sınav durumu
 const ExamStatus = { Draft: 0, Submitted: 1, Completed: 2, Archived: 3 } as const;
 
+// Puan türü (yalnızca AYT) — SAY=1, EA=2, SOZ=3, DIL=4 (DIL desteklenmez)
+const ScoreType = { SAY: 1, EA: 2, SOZ: 3, DIL: 4 } as const;
+
 // Cinsiyet
 const Gender = { Male: 0, Female: 1 } as const;
 
@@ -403,11 +406,12 @@ interface TopicDTO {
 }
 ```
 
-**CreateExamRequest (AYT örneği — 4 bölümün tamamı zorunlu, 160 soru):**
+**CreateExamRequest (AYT örneği — 4 bölümün tamamı zorunlu, 160 soru girilir; puan türüne göre yalnızca ilgili 80 soru puanlanır):**
 ```json
 {
   "studentId": "student-guid-456",
   "examCode": 11,
+  "scoreType": 1,
   "examName": "AYT SAY Denemesi",
   "examDate": "2026-06-27T10:00:00Z",
   "durationMinutes": 180,
@@ -453,12 +457,41 @@ interface TopicDTO {
 }
 ```
 
+**scoreType eşlemesi (yalnızca AYT):**
+
+| scoreType | Ad | Puanlanan bölümler |
+|-----------|----|--------------------|
+| 1 | SAY | Matematik + Fen Bilimleri |
+| 2 | EA | Türk Dili ve Edebiyatı – Sosyal Bilimler-1 + Matematik |
+| 3 | SÖZ | Türk Dili ve Edebiyatı – Sosyal Bilimler-1 + Sosyal Bilimler-2 |
+
+- **AYT:** `scoreType` zorunlu (1/2/3). 4 (DİL) reddedilir.
+- **TYT:** `scoreType` gönderilmemelidir (gönderilirse `ERR_SCORE_TYPE_NOT_ALLOWED`).
+- **Frontend davranışı:** Seçilen puan türüne göre yalnızca ilgili 2 bölüm (80 soru) gösterilir ve payload'a gönderilir; diğer bölümler gönderilmez. Varsayılan puan türü SAY'dır.
+
+**UpdateExamRequest:**
+```json
+{
+  "scoreType": 2,
+  "examName": "AYT EA Denemesi",
+  "examDate": "2026-06-27T10:00:00Z",
+  "durationMinutes": 180,
+  "notes": "Güncellendi",
+  "status": 1,
+  "sections": [ /* CreateExamRequest ile aynı */ ]
+}
+```
+> `examId` gövdede gönderilse bile route'taki `{id}` değeri kullanılır.
+
 **ExamDTO (detaylı — sadece `?detailed=true` ile):**
 ```typescript
 interface ExamDTO {
-  id: string; studentId: string; examCode: number; examName: string;
+  id: string; studentId: string; examCode: number; scoreType?: number | null; examName: string;
   examDate: string; status: number; durationMinutes?: number; notes?: string;
+  // totalNet: puan türüne göre 80 soruluk net; totalCorrect/Wrong/Blank tüm 160 soru
   totalNet?: number; totalCorrect: number; totalWrong: number; totalBlank: number;
+  // Puanlanan 80 sorunun ham toplamı (AYT; TYT'de 0)
+  scoreCorrect: number; scoreWrong: number; scoreBlank: number;
   sections: ExamSectionDTO[]; createdAt: string; updatedAt?: string;
 }
 
@@ -483,9 +516,11 @@ interface ExamTopicResultDTO {
 **ExamSummaryDTO (summary — `?detailed=false` veya list endpoint'lerde):**
 ```typescript
 interface ExamSummaryDTO {
-  id: string; studentId: string; examCode: number; examName: string;
+  id: string; studentId: string; examCode: number; scoreType?: number | null; examName: string;
   examDate: string; status: number; durationMinutes?: number;
   totalNet?: number; totalCorrect: number; totalWrong: number; totalBlank: number;
+  // Puanlanan 80 sorunun ham toplamı (AYT; TYT'de 0)
+  scoreCorrect: number; scoreWrong: number; scoreBlank: number;
   createdAt: string; updatedAt?: string;
 }
 ```
@@ -775,6 +810,9 @@ Seed edilen resmi ders kodları (ExamDTO'da `lessonCode` olarak kullanılır):
 | `ERR_TOPIC_LESSON_MISMATCH` | 400 | Konu yanlış/boş toplamı dersle uyuşmuyor |
 | `ERR_LESSON_SECTION_MISMATCH` | 400 | Ders toplamı bölümle uyuşmuyor |
 | `ERR_EXAM_NOT_FOUND` | 404 | Sınav bulunamadı |
+| `ERR_SCORE_TYPE_REQUIRED` | 400 | AYT için puan türü zorunlu (SAY, EA, SÖZ) |
+| `ERR_INVALID_SCORE_TYPE` | 400 | Geçersiz puan türü |
+| `ERR_SCORE_TYPE_NOT_ALLOWED` | 400 | Bu sınav tipi için puan türü gönderilmemeli (TYT) |
 | `ERR_UNEXPECTED_ERROR` | 500 | Beklenmeyen hata |
 
 ### Tasks Hataları
@@ -927,3 +965,7 @@ class ApiError extends Error {
 6. **TopicResults isteğe bağlıdır:** ExamLessonRequest'te `topicResults` boş dizi olabilir. Sadece yanlış/boşlar için konu bazında breakdown istenirse doldurulur.
 
 7. **ExamSection name birebir template'le eşleşmeli:** Bölüm adları (örn. "Türkçe", "Sosyal Bilimler", "Matematik") tam olarak template'teki gibi olmalıdır.
+
+8. **scoreType (puan türü):** Yalnızca AYT için zorunludur (1=SAY, 2=EA, 3=SÖZ); 4 (DİL) reddedilir. TYT'de `scoreType` gönderilmemelidir (gönderilirse `ERR_SCORE_TYPE_NOT_ALLOWED`).
+
+9. **AYT puanlama:** Kitapçıkta 160 soru girilir (4 bölüm tamamen dolu) ancak `scoreType`'a göre yalnızca ilgili 80 soru puanlanır. `totalCorrect/totalWrong/totalBlank` tüm 160 soruyu, `scoreCorrect/scoreWrong/scoreBlank` ise puanlanan 80 soruyu temsil eder. `totalNet` artık puan türüne göre 80 soruluk nettir.

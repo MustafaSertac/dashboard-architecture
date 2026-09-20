@@ -13,7 +13,7 @@ import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data: todayTasks } = useTodayTasks(user?.id ?? "");
-  const firstTaskId = todayTasks?.[0]?.id;
+  const tasks = todayTasks ?? [];
 
   return (
     <div className="space-y-6">
@@ -32,7 +32,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Timer Section - Full width horizontal card */}
-      <StudyTimerCard dailyGoalHours={6} taskId={firstTaskId} />
+      <StudyTimerCard dailyGoalHours={6} tasks={tasks} />
 
       {/* Tasks Section */}
       <div className="grid gap-6 lg:grid-cols-2">

@@ -39,7 +39,8 @@ import {
 import { toast } from "sonner";
 import { Check, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
 import type { ExamType, TopicDetail } from "@/lib/types";
-import { getExamSections, getTotalQuestions, getLessonCode, type SubjectConfig } from "@/config/exam-config";
+import { SCORE_TYPE, type ScoreType } from "@/types/common";
+import { getExamSections, getSectionsForScoreType, getLessonCode, type SubjectConfig } from "@/config/exam-config";
 import { cn } from "@/lib/utils";
 
 interface ExamInputModalProps {
@@ -70,18 +71,35 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
   const createExam = useCreateExam();
 
   const [examType, setExamType] = useState<ExamType>("TYT");
+  const [scoreType, setScoreType] = useState<ScoreType | null>(null);
   const [examName, setExamName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [showTopicDetails, setShowTopicDetails] = useState(false);
   const [subjectInputs, setSubjectInputs] = useState<Record<string, SubjectInput>>({});
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
-  const sections = useMemo(() => getExamSections(examType), [examType]);
+  // AYT'de puan türüne göre yalnızca ilgili bölümler (80 soru) gösterilir
+  const sections = useMemo(() => {
+    if (examType === "TYT") return getExamSections("TYT");
+    return scoreType !== null
+      ? getSectionsForScoreType(scoreType)
+      : getExamSections("AYT");
+  }, [examType, scoreType]);
+
   const allSubjects = useMemo(
     () => sections.flatMap((section) => section.subjects),
     [sections]
   );
-  const totalQuestions = useMemo(() => getTotalQuestions(examType), [examType]);
+
+  const totalQuestions = useMemo(
+    () =>
+      sections.reduce(
+        (sum, section) =>
+          sum + section.subjects.reduce((a, s) => a + s.questionCount, 0),
+        0
+      ),
+    [sections]
+  );
 
   // Yanlış ve boşa göre doğru sayısını hesapla (0 yanlış 0 boş ise tümü doğru)
   const getSubjectCounts = (subject: SubjectConfig) => {
@@ -128,6 +146,9 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
   const allSubjectsValid = useMemo(() => {
     return allSubjects.every((subject) => getSubjectValidation(subject).valid);
   }, [allSubjects, subjectInputs]);
+
+  // AYT için puan türü zorunlu; TYT'de gönderilmez
+  const scoreTypeValid = examType === "TYT" || scoreType !== null;
 
   // Ders girişini güncelle (doğru otomatik hesaplanır)
   const updateSubjectInput = (
@@ -210,9 +231,17 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
     });
   };
 
-  // Sınav türü değiştiğinde inputları sıfırla
+  // Sınav türü değiştiğinde inputları sıfırla (AYT varsayılan puan türü: SAY)
   const handleExamTypeChange = (newType: ExamType) => {
     setExamType(newType);
+    setScoreType(newType === "AYT" ? SCORE_TYPE.SAY : null);
+    setSubjectInputs({});
+    setExpandedSubject(null);
+  };
+
+  // Puan türü değişince bölümler değişir; girişleri sıfırla
+  const handleScoreTypeChange = (value: string) => {
+    setScoreType(Number(value) as ScoreType);
     setSubjectInputs({});
     setExpandedSubject(null);
   };
@@ -221,6 +250,11 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
   const handleSubmit = () => {
     if (!allSubjectsValid) {
       toast.error("Lütfen tüm dersleri eksiksiz doldurun");
+      return;
+    }
+
+    if (!scoreTypeValid) {
+      toast.error("AYT için puan türü seçin");
       return;
     }
 
@@ -263,6 +297,8 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
     const createReq = mapUiExamFormToCreateRequest({
       studentId: targetStudentId,
       examType,
+      scoreType:
+        examType === "AYT" && scoreType !== null ? scoreType : undefined,
       examName: examName || `${examType} Denemesi`,
       date,
       subjectResults,
@@ -286,6 +322,7 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
     setSubjectInputs({});
     setDate(new Date().toISOString().split("T")[0]);
     setExamName("");
+    setScoreType(null);
     setShowTopicDetails(false);
     setExpandedSubject(null);
   };
@@ -302,7 +339,12 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
 
         <div className="flex flex-col flex-1 min-h-0 gap-4">
           {/* Üst Bilgiler */}
-          <div className="grid grid-cols-3 gap-4 shrink-0">
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-4 shrink-0",
+              examType === "AYT" ? "sm:grid-cols-4" : "sm:grid-cols-3"
+            )}
+          >
             <div>
               <Label htmlFor="date">Tarih</Label>
               <Input
@@ -327,6 +369,27 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
                 </SelectContent>
               </Select>
             </div>
+            {examType === "AYT" && (
+              <div>
+                <Label htmlFor="scoreType">Puan Türü</Label>
+                <Select
+                  value={scoreType !== null ? String(scoreType) : ""}
+                  onValueChange={handleScoreTypeChange}
+                >
+                  <SelectTrigger
+                    id="scoreType"
+                    className={cn(!scoreTypeValid && "border-destructive")}
+                  >
+                    <SelectValue placeholder="Puan türü seç" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={String(SCORE_TYPE.SAY)}>SAY</SelectItem>
+                    <SelectItem value={String(SCORE_TYPE.EA)}>EA</SelectItem>
+                    <SelectItem value={String(SCORE_TYPE.SOZ)}>SÖZ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="examName">Sınav Adı (Opsiyonel)</Label>
               <Input
@@ -629,12 +692,17 @@ export function ExamInputModal({ open, onOpenChange, studentId }: ExamInputModal
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             İptal
           </Button>
-          <Button onClick={handleSubmit} disabled={!allSubjectsValid || createExam.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!allSubjectsValid || !scoreTypeValid || createExam.isPending}
+          >
             {createExam.isPending
               ? "Kaydediliyor..."
-              : allSubjectsValid
-                ? "Kaydet"
-                : "Tüm Dersleri Doldurun"}
+              : !allSubjectsValid
+                ? "Tüm Dersleri Doldurun"
+                : !scoreTypeValid
+                  ? "Puan Türü Seçin"
+                  : "Kaydet"}
           </Button>
         </DialogFooter>
       </DialogContent>

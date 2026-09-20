@@ -1,6 +1,6 @@
 import type { ExamResult, SubjectResult, TopicDetail } from "@/lib/types";
 import type { ExamDTO, ExamSummaryDTO, CreateExamRequest, ExamSectionRequest, ExamLessonRequest } from "@/modules/exams/types/exam.types";
-import { UiExamType, examCodeToExamType, examTypeToExamCode, ExamStatus } from "@/types/common";
+import { UiExamType, examCodeToExamType, examTypeToExamCode, ExamStatus, type ScoreType } from "@/types/common";
 import { canonicalLessonName } from "@/modules/lessons/utils/lesson-name-map";
 import { ExamType } from "@/lib/types";
 
@@ -44,10 +44,14 @@ export function mapExamDtoToUi(dto: ExamDTO | ExamSummaryDTO): ExamResult {
     date: dto.examDate.split("T")[0],
     examType: examCodeToExamType(dto.examCode) as ExamType,
     examName: dto.examName,
+    scoreType: dto.scoreType ?? null,
     totalCorrect: dto.totalCorrect,
     totalWrong: dto.totalWrong,
     totalEmpty: dto.totalBlank,
     totalNet: dto.totalNet ?? dto.totalCorrect - dto.totalWrong * 0.25,
+    scoreCorrect: dto.scoreCorrect,
+    scoreWrong: dto.scoreWrong,
+    scoreBlank: dto.scoreBlank,
     subjectResults,
     analysisCompleted: dto.status >= ExamStatus.Completed,
   };
@@ -56,6 +60,7 @@ export function mapExamDtoToUi(dto: ExamDTO | ExamSummaryDTO): ExamResult {
 export function mapUiExamFormToCreateRequest(params: {
   studentId: string;
   examType: UiExamType;
+  scoreType?: ScoreType;
   examName: string;
   date: string;
   subjectResults: {
@@ -128,6 +133,10 @@ export function mapUiExamFormToCreateRequest(params: {
   return {
     studentId: params.studentId,
     examCode,
+    // scoreType yalnızca AYT için gönderilir (TYT'de alan hiç yer almaz)
+    ...(params.examType === "AYT" && params.scoreType
+      ? { scoreType: params.scoreType }
+      : {}),
     examName: params.examName,
     examDate: new Date(params.date).toISOString(),
     durationMinutes: params.durationMinutes ?? getDefaultDuration(examCode),

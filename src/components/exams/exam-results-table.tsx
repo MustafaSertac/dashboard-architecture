@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useExamList, useExamDetail, useUpdateExam, useDeleteExam } from "@/modules/exams/hooks/useExams";
-import { ExamStatus } from "@/types/common";
+import { ExamStatus, scoreTypeLabel } from "@/types/common";
 import {
   Table,
   TableBody,
@@ -220,10 +220,17 @@ export function ExamResultsTable({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium">
-                          {format(parseISO(exam.date), "d MMMM yyyy", {
-                            locale: tr,
-                          })}
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">
+                            {format(parseISO(exam.date), "d MMMM yyyy", {
+                              locale: tr,
+                            })}
+                          </div>
+                          {scoreTypeLabel(exam.scoreType) && (
+                            <Badge variant="outline" className="text-xs">
+                              {scoreTypeLabel(exam.scoreType)}
+                            </Badge>
+                          )}
                         </div>
                         {exam.examName && (
                           <div className="text-sm text-muted-foreground truncate">
@@ -347,12 +354,19 @@ export function ExamResultsTable({
       <Dialog open={!!selectedExam} onOpenChange={() => setSelectedExam(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {detailExam?.examName || `${detailExam?.examType} Sınavı`} -{" "}
-              {detailExam &&
-                format(parseISO(detailExam.date), "d MMMM yyyy", {
-                  locale: tr,
-                })}
+            <DialogTitle className="flex items-center gap-2">
+              <span>
+                {detailExam?.examName || `${detailExam?.examType} Sınavı`} -{" "}
+                {detailExam &&
+                  format(parseISO(detailExam.date), "d MMMM yyyy", {
+                    locale: tr,
+                  })}
+              </span>
+              {scoreTypeLabel(detailExam?.scoreType) && (
+                <Badge variant="outline" className="text-xs">
+                  {scoreTypeLabel(detailExam?.scoreType)}
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -386,9 +400,39 @@ export function ExamResultsTable({
                   <div className="text-2xl font-bold text-primary">
                     {detailExam.totalNet.toFixed(2)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Toplam Net</div>
+                  <div className="text-xs text-muted-foreground">
+                    {detailExam.examType === "AYT" ? "Puan Türü Net" : "Toplam Net"}
+                  </div>
                 </div>
               </div>
+
+              {detailExam.examType === "AYT" && (
+                <div>
+                  <h4 className="font-semibold mb-2 text-sm text-muted-foreground">
+                    Puanlanan Sorular (80)
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-success">
+                        {detailExam.scoreCorrect ?? 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Doğru</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-destructive">
+                        {detailExam.scoreWrong ?? 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Yanlış</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-muted-foreground">
+                        {detailExam.scoreBlank ?? 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Boş</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h4 className="font-semibold mb-3">Ders Bazlı Sonuçlar</h4>

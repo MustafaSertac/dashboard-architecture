@@ -900,7 +900,7 @@ class ApiError extends Error {
 | `src/modules/notes/services/note.service.test.ts` | list, create (**teacherId body'ye konmaz**), delete |
 | `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic |
 | `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope (envelope doğrulama) |
-| `src/components/dashboard/study-timer-card.test.tsx` | focus-session kaydı (reset → mutate), taskId yoksa disabled |
+| `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy` ile göreve yazılır; görev yoksa uyarı + disabled |
 | `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
 | `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan dueDate/studentId/createdAt (fallback yok) |
 | `src/modules/exams/mappers/exam.mapper.test.ts` | topicResults correct/questionNumbers doğrudan DTO'dan |
