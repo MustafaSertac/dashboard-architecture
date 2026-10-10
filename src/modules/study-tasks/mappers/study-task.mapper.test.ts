@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapStudyTaskToUi } from "@/modules/study-tasks/mappers/study-task.mapper";
+import { mapStudyTaskToUi, mapUiTaskToUpdateRequest } from "@/modules/study-tasks/mappers/study-task.mapper";
 import type { StudyTaskDTO } from "@/modules/study-tasks/types/study-task.types";
 
 const baseDto: StudyTaskDTO = {
@@ -16,7 +16,8 @@ const baseDto: StudyTaskDTO = {
   taskType: 0,
   targetHours: 2,
   targetQuestions: 50,
-  studiedHours: 1,
+  studiedMinutes: 60,
+  studiedSeconds: 0,
   correctCount: 30,
   wrongCount: 5,
   emptyCount: 15,
@@ -56,5 +57,39 @@ describe("mapStudyTaskToUi", () => {
   it("totalQuestions === 0 && !isCompleted -> status pending", () => {
     const task = mapStudyTaskToUi({ ...baseDto, totalQuestions: 0 });
     expect(task.status).toBe("pending");
+  });
+
+  it("studiedMinutes + studiedSeconds -> hoursStudied (saat)", () => {
+    const task = mapStudyTaskToUi({
+      ...baseDto,
+      studiedMinutes: 150,
+      studiedSeconds: 36,
+    });
+    expect(task.hoursStudied).toBeCloseTo(2.51, 5);
+  });
+
+  it("sifir sure -> hoursStudied 0", () => {
+    const task = mapStudyTaskToUi({
+      ...baseDto,
+      studiedMinutes: 0,
+      studiedSeconds: 0,
+    });
+    expect(task.hoursStudied).toBe(0);
+  });
+});
+
+describe("mapUiTaskToUpdateRequest", () => {
+  it("isCompleted'i request'e aktarir (tamamlanmis taski geri acma)", () => {
+    const req = mapUiTaskToUpdateRequest({
+      taskId: "t1",
+      studentId: "s1",
+      isCompleted: false,
+    });
+    expect(req.isCompleted).toBe(false);
+  });
+
+  it("isCompleted verilmezse undefined olur (mevcut durum korunur)", () => {
+    const req = mapUiTaskToUpdateRequest({ taskId: "t1", studentId: "s1" });
+    expect(req.isCompleted).toBeUndefined();
   });
 });

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { ExamResultsTable } from "@/components/exams/exam-results-table";
 import { ExamInputModal } from "@/components/exams/exam-input-modal";
-import { ExamTrendsChart } from "@/components/exams/exam-trends-chart";
+import { ExamTrendsChart } from "@/components/charts/lazy-charts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";

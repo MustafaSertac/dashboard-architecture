@@ -82,7 +82,7 @@ describe("StudyTimerCard", () => {
     expect(screen.getByText("Fonksiyonlar")).toBeInTheDocument();
   });
 
-  it("duraklatinca gecen sure logStudy ile goreve yazilir", async () => {
+  it("duraklatinca gecen sure logStudy'ye DELTA olarak yazilir", async () => {
     const user = userEvent.setup();
     const { queryClient } = renderWithProviders(
       <StudyTimerCard tasks={[baseTask]} />
@@ -104,12 +104,14 @@ describe("StudyTimerCard", () => {
 
     expect(logStudyMutate).toHaveBeenCalledTimes(1);
     const payload = logStudyMutate.mock.calls[0][0];
+    // Backend log-study toplar; yalnizca bu oturumun artirimi gonderilir.
     expect(payload).toMatchObject({
       taskId: "t1",
-      correctCount: 8,
-      wrongCount: 1,
-      emptyCount: 1,
+      correctCount: 0,
+      wrongCount: 0,
+      emptyCount: 0,
     });
-    expect(payload.hours).toBeGreaterThan(1);
+    expect(payload.hours).toBeGreaterThan(0);
+    expect(payload.hours).toBeLessThan(1);
   });
 });

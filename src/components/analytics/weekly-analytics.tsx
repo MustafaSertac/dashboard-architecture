@@ -216,7 +216,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
         questions: totals.questions,
         correct: totals.correct,
         target: totals.target,
-        hours: Number(totals.hours.toFixed(1)),
+        hours: Number(totals.hours.toFixed(2)),
       });
     }
 
@@ -320,7 +320,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
               <Clock className="size-4" />
               <span className="text-xs">Toplam Saat</span>
             </div>
-            <p className="mt-1 text-2xl font-bold">{weeklyTotals.hours.toFixed(1)}</p>
+            <p className="mt-1 text-2xl font-bold">{weeklyTotals.hours.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -413,7 +413,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                                 <div className="space-y-1">
                                   <div className="font-medium">{s.questions +"/"+ s.correct}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {s.hours.toFixed(1)} saat
+                                    {s.hours.toFixed(2)} saat
                                   </div>
                                   <div> </div>
                                 </div>
@@ -467,7 +467,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                         key={day.date.toISOString()}
                         className="p-3 text-center"
                       >
-                        {day.totalHours.toFixed(1)}
+                        {day.totalHours.toFixed(2)}
                       </td>
                     ))}
                     {/* removed weekly aggregate columns */}
@@ -519,7 +519,7 @@ export function WeeklyAnalytics({ studentId: propStudentId }: WeeklyAnalyticsPro
                     <td className="p-3 text-center">{w.target}</td>
                     <td className="p-3 text-center">{w.questions}</td>
                     <td className="p-3 text-center">{w.correct}</td>
-                    <td className="p-3 text-center">{w.hours.toFixed(1)}</td>
+                    <td className="p-3 text-center">{w.hours.toFixed(2)}</td>
                     <td className="p-3 text-center font-bold">
                       {w.questions > 0 ? Math.round((w.correct / w.questions) * 100) : 0}%
                     </td>

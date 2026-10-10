@@ -41,8 +41,8 @@
 |------|-----|----------|
 | `useExamList(studentId)` | `qk.exams.list` | `list` → `mapExamDtoToUi` → `ExamResult[]` |
 | `useExamDetail(id, detailed=false)` | `qk.exams.detail` | detay/summary mapper |
-| `useExamTrends(studentId, examCode)` | `qk.exams.trends` | tek öğrenci trendi |
-| `useExamTrendsAll(examCode, teacherId?, limit=10)` | `qk.exams.trendsAll` | `StudentTrendDTO[]` → `{studentId,studentName,exams}[]` |
+| `useExamTrends(studentId, examCode)` | `qk.exams.trends` | tek öğrenci trendi; `enabled: !!studentId`, `placeholderData: keepPreviousData` |
+| `useExamTrendsAll(examCode, teacherId?, limit=10)` | `qk.exams.trendsAll` | `StudentTrendDTO[]` → `{studentId,studentName,exams}[]`; `enabled: !!examCode && !!teacherId` |
 | `useCreateExam()` | — | başarıda `qk.exams.list(studentId)` invalidate |
 | `useUpdateExam()` | — | liste + `qk.exams.detail(id,true)` invalidate |
 | `useDeleteExam()` | — | liste invalidate |
@@ -80,6 +80,13 @@
 
 - `/dashboard/exams` → TYT/AYT sekmeleri + `ExamResultsTable`, "Sonuç Ekle" ile `ExamInputModal`.
 - Öğretmen panelinde `ExamTrendsChart`, `useExamTrendsAll` ile tüm öğrencileri karşılaştırır.
+- **`ExamTrendsChart` line chart (2026-10-10):** tek öğrencide net trend çizgisi, çok öğrencide her
+  öğrenci bir çizgi. Renkler `var(--chart-N)` ile verilir; önceki `hsl(var(--chart-N))` geçersizdi
+  (`--chart-N` oklch) ve çizgi görünmüyordu. Tek öğrencide y-domain ve nokta vurgusu eklendi.
+- **Performans (2026-10-10):** `ExamTrendsChart` tek-öğrenci ve tüm-öğrenci sorgularını koşulsuz
+  çağırır ama `enabled` sayesinde yalnızca aktif mod çalışır (önceki `"__none__"` sentinel'i
+  `/exams/trends?studentId=__none__` isteği atıyordu). Grafik ayrıca `components/charts/lazy-charts.tsx`
+  üzerinden `next/dynamic` ile geç yüklenir.
 - Şablon bölüm adları backend ile **birebir** eşleşmeli: `"Türkçe"`, `"Sosyal Bilimler"`,
   `"Temel Matematik"`, `"Fen Bilimleri"`, `"Türk Dili ve Edebiyatı – Sosyal Bilimler-1"` vb.
 - Ders kodları (`lessonCode`) `exam-config.ts` `LESSON_CODES` üzerinden eşlenir;

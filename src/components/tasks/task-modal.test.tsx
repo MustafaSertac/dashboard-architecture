@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { TaskModal } from "@/components/tasks/task-modal";
 import { renderWithProviders } from "@/test/test-utils";
@@ -19,6 +19,7 @@ vi.mock("@/modules/teacher/hooks/useTeacher", () => ({
 
 const mockLessons = [
   { id: "lesson-mat", name: "Matematik", code: 11, isActive: true, examTypes: [10], unitCount: 1, createdAt: "" },
+  { id: "lesson-fiz", name: "Fizik", code: 12, isActive: true, examTypes: [10], unitCount: 1, createdAt: "" },
 ];
 const mockUnits = [
   { id: "unit-1", lessonCode: 11, code: 201, name: "Fonksiyonlar", order: 1, isActive: true, examTypes: [10], topicCount: 1, createdAt: "" },
@@ -27,10 +28,15 @@ const mockTopics = [
   { id: "topic-1", unitCode: 201, topicCode: 1101, name: "Fonksiyon Grafigi", order: 0, isActive: true, examTypes: [10], createdAt: "" },
 ];
 
+// Ogrencinin atanmis dersleri (testte degistirilebilir).
+let assignedData: { lessonId: string }[] = [];
+
 vi.mock("@/modules/lessons/hooks/useLessons", () => ({
   useLessons: () => ({ data: mockLessons, isLoading: false }),
   useUnits: () => ({ data: mockUnits, isLoading: false }),
   useTopics: () => ({ data: mockTopics, isLoading: false }),
+  useStudentLessons: () => ({ data: assignedData, isLoading: false }),
+  useStudentOwnLessons: () => ({ data: assignedData, isLoading: false }),
 }));
 
 vi.mock("@/lib/auth-context", () => ({
@@ -40,6 +46,10 @@ vi.mock("@/lib/auth-context", () => ({
 }));
 
 describe("TaskModal (gerçek veri)", () => {
+  beforeEach(() => {
+    assignedData = [];
+  });
+
   it("modal render olur ve ders/ünite/konu alanları görünür", () => {
     renderWithProviders(
       <TaskModal open onOpenChange={() => {}} editingTaskId={null} selectedStudentId="student-1" />

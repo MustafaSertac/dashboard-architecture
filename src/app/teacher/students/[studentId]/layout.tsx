@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useStudentContext } from "@/lib/student-context";
+import { TaskViewDateProvider } from "@/lib/task-view-date-context";
 
 export default function StudentLayout({
   children,
@@ -16,10 +17,15 @@ export default function StudentLayout({
 
   const studentId = params.studentId as string;
 
+  const selectedStudentRef = useRef(selectedStudent);
+  selectedStudentRef.current = selectedStudent;
+
   useEffect(() => {
     const student = studentsWithStats.find((s) => s.id === studentId);
     if (student) {
-      setSelectedStudent(student);
+      if (selectedStudentRef.current?.id !== student.id) {
+        setSelectedStudent(student);
+      }
     } else if (studentsWithStats.length > 0) {
       // Redirect to students list if student not found
       router.push("/teacher/students");
@@ -44,5 +50,7 @@ export default function StudentLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <TaskViewDateProvider>{children}</TaskViewDateProvider>
+  );
 }

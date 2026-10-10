@@ -1,127 +1,217 @@
 # 04 — En Son Ne Yaptık (Changelog)
 
 > Tarihli çalışma günlüğü, en yeni en üstte. Amaç: yeni oturumda nerede kaldığımızı hızlıca görmek.
+> **Bu dosya yalnızca son 10 girişi tutar;** daha eskiler `04-last-work-archive.md` dosyasındadır.
 
 ---
 
-## 2026-09-27 (3) — Organization modülü frontend entegrasyonu
+## 2026-10-10 (16) — Öğrenci ders atama + görev formu ders filtresi
 
-Backend'de hazır olan Organization + kayıt-kodu bounded context'i frontend'e bağlandı.
+Backend `StudentLessons` özelliği frontend'e bağlandı; görev formundaki ders listesi atanan derslerle
+sınırlandı.
 
-- **Yeni `organizations` modülü:** `types/organization.types.ts`, `services/organization.service.ts`,
-  `hooks/useOrganizations.ts`; `endpoints.organizations` + `endpoints.teachers.myCodes`; `qk.organizations.*`.
-- **`/teacher/organization` sayfası** (sidebar'a "Organizasyon"): org oluştur/katıl, "Tüm öğrencileri
-  gör" Switch'i (`PATCH visibility`), org öğretmenleri, öğrenci + öğretmen kodu üretimi (kopyala).
-- **`/teacher/students`:** "Ogrenci Kodu Uret" (`POST /teachers/me/codes`) → kod dialog'u.
-- **Register güncellemesi:** öğrenci kodu **8 karakter** (alfabe `A-Z` sans I/O + `2-9`) ve
-  `POST /organizations/codes/validate` ile **canlı doğrulama** (zorunlu); öğretmene opsiyonel
-  `organizationCode` (TeacherJoin). `useAuth.register` artık `RegisterInput` objesi alır.
-- **Auth tipleri/store:** `UserProfileResponse.organizationId`, `AuthUser.organizationId`,
-  `TeacherRegisterRequest.organizationCode`.
-- **Test:** `organization.service.test.ts` (9 test) eklendi.
+- **Sözleşme:** `endpoints.studentLessons.*`, `qk.studentLessons.*`, `StudentLessonDTO` /
+  `SetStudentLessonsRequest`; `lessonService.getStudentLessons/setStudentLessons/removeStudentLesson/
+  getStudentOwnLessons`; hook'lar `useStudentLessons`, `useStudentOwnLessons`, `useSetStudentLessons`,
+  `useRemoveStudentLesson`.
+- **Öğretmen UI:** `/teacher/students/{studentId}/lessons` (`StudentLessonsView`) — checkbox ile seç,
+  "Kaydet" `PUT` replace-all; sidebar öğrenci menüsüne "Dersler" + `StudentHeader` "lessons" tipi.
+- **Öğrenci UI:** `/dashboard` "Derslerim" kartı (`MyLessonsCard`).
+- **Görev formu:** `TaskModal` "Ders" listesi öğrencinin atanmış dersleriyle sınırlanır
+  (`filterLessonsByAssignment`; atama yoksa tüm dersler).
+- **Testler:** lesson service (+4), `student-lessons-view.test.tsx` (2), `assigned-lessons.test.ts` (2).
 
-**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 102/102, `npm run build` başarılı
-(`/teacher/organization` route'u üretildi). Canlı backend: `teachers/me/codes` 201, `codes/validate` 200,
-`organizations/me` üye değilse 404.
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 121/121, `npm run build` başarılı
+(`/teacher/students/[studentId]/lessons` route'u üretildi).
 
-> Aktarım: `modules/organizations.md` (yeni), `03` (51→60 endpoint), `02`, `modules/auth.md`,
-> `TEST_SENARYOLARI.md` (S24–S26), `01`.
-
----
-
-## 2026-09-27 (2) — Çalışma kuralları + doküman senkronu
-
-- **`docs/memory-bank/07-rules.md` oluşturuldu** — her oturumda ilk okunan zorunlu akış
-  (ilgili testleri koş → build/typecheck → md güncelle → eksikleri yaz → tamamlananı sil/aktar).
-- **`AGENTS.md` (repo kökü) oluşturuldu** — agentları `07-rules.md`'ye yönlendirir.
-- **`dashboard-architecture.zip` silindi** — mock dönemine ait eski snapshot (uyumsuzdu).
-- **`src/app/FRONTEND_INTEGRATION.md` güncellendi:** Vite proxy → Next.js rewrite,
-  `/auth/teachter` → `/auth/teacher` (+ deprecated notu), `refresh-token` AllowAnonymous notu,
-  endpoint sayısı 39 → 51, `DashboardOverviewDTO`'ya `currentStreak`/`longestStreak` talebi eklendi.
-- `01/05/06` dosyalarına kurallara referans eklendi.
-
-**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 93/93, `npm run build` başarılı.
+> Aktarım: `modules/lessons.md`, `modules/study-tasks.md`, `03-module-endpoints.md`,
+> `TEST_SENARYOLARI.md` (S30), `FRONTEND_INTEGRATION.md` §5.10.
 
 ---
 
-## 2026-09-27 — Auth/Register/Exam düzeltmeleri
+## 2026-10-10 (15) — Frontend performans iyileştirmeleri (istek/render/bundle)
 
-**Öğrenci kaydına davet kodu (`code`)** — backend sözleşmesi (`FRONTEND_INTEGRATION.md` §3)
-6 haneli davet kodu istiyordu; tamamlandı.
-- `src/modules/auth/types/auth.types.ts` — `StudentRegisterRequest.code: string` (zorunlu);
-  `avatar?`, `gender?`, `isKvkVerified?`. `TeacherRegisterRequest`'te `code` yok.
-- `src/modules/auth/hooks/useAuth.ts` — `register(..., code?, isKvkVerified?)`.
-- `src/app/register/page.tsx` — "Davet Kodu" input'u yalnızca öğrencide; `^\d{6}$` doğrulaması.
-- `src/modules/auth/services/auth.service.test.ts` — `code` gönderimi doğrulanır.
+Kapsamlı performans turu: gereksiz istekler, gereksiz re-render'lar, cache ayarı, bundle boyutu
+ve rota prefetch'i iyileştirildi.
 
-**KVKK onayı** — register ekranına standart aydınlatma metni + zorunlu checkbox eklendi;
-onay `isKvkVerified: true` olarak gönderilir (`register/page.tsx`, `useAuth`, `auth-context`).
+- **Gereksiz istekler (A1):** `exam-trends-chart.tsx` iki trend sorgusunu (tek öğrenci + tüm
+  öğrenciler) koşulsuz çağırıyordu; `"__none__"` sentinel'i ile `/exams/trends?studentId=__none__`
+  isteği atılıyordu. Artık mod bazında yalnızca ilgili sorgu çalışır; sentinel kaldırıldı.
+  `useExamTrendsAll` → `enabled: !!examCode && !!teacherId`.
+- **Re-render (A2):** `AuthProvider` context değeri `useMemo` ile sabitlendi ve değerden
+  `accessToken` çıkarıldı; 15 dk'lık token yenilemesi artık tüm `useAuth()` tüketicilerini yeniden
+  render etmiyor (kimse context'ten `accessToken`/`setUser` tüketmiyordu).
+- **Cache (A3):** global `staleTime` 30 sn → 5 dk; `useTasksByRange`, weekly/monthly/yearly
+  analytics ve `useExamTrends`'a `placeholderData: keepPreviousData` (gezinmede skeleton flaşı yok).
+- **Bundle (A4):** Recharts (~500 KB) dashboard/exams grafikleri `next/dynamic` (`ssr:false`) ile
+  lazy yükleniyor — yeni `src/components/charts/lazy-charts.tsx` + kart iskeleti.
+- **Prefetch (A5):** `student-list.tsx` "Detaylari Gor" butonu `router.push` yerine `next/link`
+  (`prefetch`) kullanır; öğrenci detay rota paketi önden yüklenir.
+- **Ölçüm (A0):** `@next/bundle-analyzer` (dev) eklendi; `ANALYZE=true` ile çalışır.
 
-**Rol değiştirme kapatıldı + role göre yönlendirme** — `switchRole` store/hook/context'ten ve
-`dashboard-layout`'taki demo menüden kaldırıldı. `login/page.tsx` artık role göre yönlendirir
-(teacher/admin → `/teacher`, student → `/dashboard`). Backend doğrulaması: `ahmet@edu.com`
-→ `user.role: 1`, `elif@edu.com` → `user.role: 2` (numeric, doğru).
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 119/119, `npm run build` başarılı.
 
-**Login ekranı temizliği** — "Demo Hesaplar" kartı ve sidebar'daki avatar/kullanıcı bloğu
-kaldırıldı; sidebar'a "Çıkış Yap" butonu, mobil header dropdown'ına Profil + Çıkış Yap kondu.
-
-**Exam status 400 hatası** — analiz tamamlandı toggle'ı yalnızca `status` gönderiyordu ve backend
-`ExamId/ExamDate/ExamName` zorunlu tutuyordu. `exam-results-table.tsx::handleAnalysisToggle`
-bu alanları ekleyecek şekilde düzeltildi; `UpdateExamRequest`'e `examId` eklendi.
-
-**Backend login 500** — `POST /auth/login` tüm seed hesaplarda `ERR_LOGIN_FAILED` (500) veriyordu;
-backend düzeldi, doğrulandı. (Geçici blokerdi; talep listesine eklenip kapatıldı.)
-
-**Dokümantasyon** — `docs/BackendTalep.md` yanlışlıkla silinmişti, `git checkout` ile geri
-getirildi ve `#12` streak alanları yeniden eklendi. Memory-bank kuruldu; "talep dosyası
-yalnızca açık talepleri tutar, tamamlananlar ilgili modül/dokümanlara aktarılır" kuralı yazıldı.
-
-**Doğrulama:** `npx tsc --noEmit` temiz, auth service testleri 10/10 geçti.
-
-> Bu oturumun tamamlanan maddeleri ilgili yerlere dağıtıldı: `auth.md`, `exams.md`,
-> `TEST_SENARYOLARI.md` (S21–S23), `02-architecture.md`, `03-module-endpoints.md`.
+> Aktarım: `02-architecture.md`, `modules/exams.md`, `modules/analytics.md`,
+> `modules/study-tasks.md`, `modules/teacher.md`, `01-proje-ozeti.md`, `06-yapilacaklar.md`,
+> `07-rules.md`.
 
 ---
 
-## 2026-09-20 — Dokümantasyon tazeleme (commit `2c398e7`)
+## 2026-10-10 (14) — Aylık Analiz "Toplam Saat" 2 ondalık
 
-- `FRONTEND_INTEGRATION.md` (memory-bank) ve `src/app/FRONTEND_INTEGRATION.md` güncellendi:
-  - Öğrenci/öğretmen register request DTO'ları (öğrencide `code`) dokümante edildi.
-  - FluentValidation (`ValidationProblemDetails`) uyarısı eklendi.
-  - `scoreType` (AYT) hata kodları ve puanlama açıklamaları eklendi.
-  - Auth/Notes/Teachers/Tasks hata katalogları genişletildi.
+`/dashboard/analytics` → Aylık Analiz özet kartındaki "Toplam Saat" ham değer yerine 2 ondalık
+gösterilir (ör. `2.00`).
 
----
+- `monthly-analytics.tsx` — `{totals.totalHours}` → `{totals.totalHours.toFixed(2)}`
+  (haftalık analizde de zaten `toFixed(2)`).
 
-## 2026-08-17 — Backend entegrasyon oturumu
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 113/113, `npm run build` başarılı.
 
-`FRONTEND_INTEGRATION.md`'de listelenen backend eklemeleri frontend'e bağlandı:
-
-| # | İş | Durum |
-|---|----|-------|
-| #2 | Öğretmen-öğrenci listesi → `GET /teachers/{teacherId}/students` | ✅ |
-| #5 | Not/Feedback → `GET/POST/DELETE /students/{id}/notes` | ✅ |
-| #6 | Toplu görev onayı → `POST /study-tasks/complete/batch` | ✅ |
-| #7 | Toplu sınav trendi → `GET /exams/trends/all` | ✅ |
-| #8 | Ders bazlı analiz → `?perSubject=true` + `perSubjectStats` | ✅ |
-| #9 | Forgot-password 3 adımlı e-posta akışı | ✅ |
-| #10 | Focus session endpoint'leri | ✅ (service hazır) |
-| H-1 | `teachter` → `teacher` rota düzeltmesi | ✅ |
-
-Ayrıca:
-- Tüm mock/simüle fallback'ler kaldırıldı; `src/lib/mock/*` silindi.
-- Direct entegrasyon temizliği: mapper fallback'leri kaldırıldı, DTO alanları zorunlu kılındı.
-- `ErrorState` + loading `Skeleton` state'leri yaygınlaştırıldı.
-- Vitest altyapısı kuruldu (service + mapper + component contract testleri).
-- Lessons/Units/Topics service + hook'ları eklendi; TaskModal gerçek ders seçimine geçti.
-- Profil sayfası (`/dashboard/profile`) ve öğretmen öğrenci ekle/kaldır akışı eklendi.
+> Aktarım: `modules/analytics.md`.
 
 ---
 
-## 2026-09-20 öncesi (özet)
+## 2026-10-10 (13) — `/dashboard/tasks` çökme düzeltmesi (TaskViewDateProvider)
 
-- Render güncellemeleri ve UI düzenlemeleri (`++`, `++++` commit'leri).
-- `no mock data` (commit `863cdba`): mock veri katmanının kaldırılması.
+Öğrenci `/dashboard/tasks` sayfası `DailyTasksView` render ettiğinde
+`"useTaskViewDate must be used within TaskViewDateProvider"` hatası alınıyordu (provider yalnızca
+öğretmen öğrenci-detay layout'unda vardı).
+
+- **`src/app/dashboard/layout.tsx`** — `TaskViewDateProvider` eklendi; tüm dashboard sayfaları kapsanır.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 113/113, `npm run build` başarılı.
+
+> Aktarım: `02-architecture.md`.
+
+---
+
+## 2026-10-10 (12) — Task modülü backend değişiklikleri frontend'e bağlandı
+
+Backend'de yapılan Task değişiklikleri (toplama, isCompleted, 409, targetHours) frontend'e uyarlandı.
+
+- **log-study artık toplar:** `useStudyTimer` ve günlük inline edit artık **delta** gönderir
+  (timer: `hours = geçen süre/3600`, counts 0; inline edit: yeni değer − mevcut değer). Değişiklik yoksa
+  istek atılmaz.
+- **`isCompleted` (nullable):** `UpdateTaskRequest`'e eklendi + mapper aktarır. Günlük görünümde
+  checkbox toggle: pending → `complete`; completed → `update { isCompleted: false }` (geri açma).
+- **Tamamlanmış göreve log-study → 409:** günlük görünümde "Güncelle" butonu tamamlanmış görevde
+  devre dışı (başlıkla bilgilendirir).
+- **`targetHours` 2 ondalık:** backend; frontend değişikliği gerekmez.
+- **Tip/sözleşme:** `LogTaskStudyRequest` artırım notu, `UpdateTaskRequest.isCompleted`,
+  `FRONTEND_INTEGRATION.md` §5.5 güncellendi.
+- **Testler:** timer payload (delta) + mapper `isCompleted` testleri güncellendi/eklendi.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 113/113, `npm run build` başarılı.
+
+> Aktarım: `modules/study-tasks.md`, `03-module-endpoints.md`, `TEST_SENARYOLARI.md` (S2, S29).
+
+---
+
+## 2026-10-10 (11) — Haftalık görev takvimi: Pazartesi–Pazar
+
+`weekly-tasks-view.tsx` haftayı **Pazartesi'den Pazar'a (7 gün)** gösterir; her görev kendi
+`dueDate` hücresine dağıtılır. Bu davranış zaten mevcuttu (doğrulandı).
+
+- Yanıltıcı/eski "backend dueDate dönmüyor, tüm görevler tek hücrede" yorumu kaldırıldı.
+- `weekEnd` `useMemo([currentWeekStart])` ile stabilize edildi (gereksiz yeniden hesaplama önlendi).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 111/111, `npm run build` başarılı.
+
+---
+
+## 2026-10-10 (10) — Haftalık İlerleme grafiği: sadece soru sayısı
+
+Dashboard "Haftalık İlerleme" kartı (`weekly-progress-card.tsx`) sadeleştirildi ve düzeltildi.
+
+- "Doğru" çubuğu ve `dogru` verisi kaldırıldı; yalnızca çözülen **soru sayısı** çubuğu kaldı.
+- Renkler `hsl(var(--chart-1))` → `var(--chart-1)` (geçersizdi, çubuk görünmüyordu); tooltip
+  `var(--card)`/`var(--border)`/`var(--foreground)`.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 111/111, `npm run build` başarılı.
+
+> Aktarım: `modules/analytics.md`, `06-yapilacaklar.md` (geçersiz chart renkleri maddesi kapatıldı).
+
+---
+
+## 2026-10-10 (9) — Saat gösterimi 2 ondalıklı
+
+Çalışılan süre saat olarak kalır, ancak **2 ondalık basamak** gösterilir (ör. `2.12 saat`).
+
+- `weekly-analytics.tsx` — Haftalık Analiz'deki tüm saat gösterimleri `.toFixed(1)` → `.toFixed(2)`
+  (özet kartı, ders hücreleri, tfoot Toplam Saat, haftalar arası karşılaştırma).
+- `daily-tasks-view.tsx` — günlük özet "Saat" kartı ve görev satırındaki `Saat: X` → `toFixed(2)`.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 111/111, `npm run build` başarılı.
+
+> Aktarım: `modules/study-tasks.md`, `modules/analytics.md`.
+
+---
+
+## 2026-10-10 (8) — StudyTaskDTO: studiedHours → studiedMinutes/studiedSeconds
+
+Backend `StudyTaskDTO`'da saat (`double studiedHours`) kaldırıldı; yerine **toplam dakika**
+(`studiedMinutes`) + **kalan saniye** (`studiedSeconds`, 0-59) geldi. Frontend uyarlandı.
+
+- `study-task.types.ts` — `studiedHours` yerine `studiedMinutes` + `studiedSeconds`.
+- `study-task.mapper.ts` — UI `hoursStudied = (studiedMinutes*60 + studiedSeconds)/3600` olarak
+  türetilir; görünümler `hoursStudied`'ı kullanmaya devam eder (davranış değişmez).
+- `study-task.mapper.test.ts` — yeni alanlar + dönüşüm testleri.
+- `src/app/FRONTEND_INTEGRATION.md` — `StudyTaskDTO` snippet'i güncellendi.
+
+> Not: `log-study` request'i (`LogTaskStudyRequest.hours`, double) **değişmedi**; entity/DB değişmedi.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 111/111, `npm run build` başarılı.
+
+> Aktarım: `modules/study-tasks.md`.
+
+---
+
+## 2026-10-10 (7) — Kayıt: ad-soyad normalizasyonu
+
+Register "Ad Soyad" alanı boşluğa göre split edilip biçimlendirilir: son parça **soyad** (tamamı
+büyük harf), önceki parçalar **isim** (ilk harf büyük, kalanı küçük; `tr-TR`).
+
+- **Yeni `formatFullName`** — `src/lib/utils.ts` (`toTitleCase` yardımcı + `formatFullName`).
+- `register/page.tsx` — alan `onBlur`'da ve submit'te `formatFullName` uygular; request'e biçimlenmiş
+  `name` gider.
+- **Test:** `src/lib/utils.test.ts` (7 test).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 109/109, `npm run build` başarılı.
+
+> Aktarım: `modules/auth.md`, `TEST_SENARYOLARI.md` (S28 + otomatik test satırı).
+
+---
+
+## 2026-10-10 (6) — Deneme trend grafiği düzgün line chart
+
+`ExamTrendsChart` (öğretmen/öğrenci deneme sayfaları) çizgisi görünmüyordu; düzgün line chart'a
+çevrildi.
+
+- **Kök neden:** çizgi rengi `hsl(var(--chart-1))` şeklindeydi; `--chart-N` değerleri `oklch(...)`
+  olduğu için `hsl(oklch(...))` geçersizdi → çizgi (`stroke`) render edilmiyordu.
+- `exam-trends-chart.tsx` — renkler `var(--chart-N)`'e çevrildi; tek öğrenci modunda y-domain
+  otomatik hesaplanır, nokta/aktif nokta vurgusu; çok öğrenci modunda her öğrenci bir çizgi
+  (`connectNulls`); eksen/tooltip geçerli CSS değişkenleriyle.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 102/102, `npm run build` başarılı.
+
+> Aktarım: `modules/exams.md`. Not: aynı `hsl(var(--chart-N))` deseni `weekly-progress-card.tsx`
+> (BarChart) ve tooltip stillerinde de var; ayrı iş olarak düzeltilebilir.
+
+---
+
+## 2026-10-10 (5) — Toplu onay: günlük görünümde seçili gün
+
+Günlük görünümde "Toplu Onayla" artık yalnızca **seçili günün** görevlerini onaylar (önceki hafta
+kapsamı daraltıldı). Kapsam görünüme göre: `daily` → seçili gün, `weekly` → görüntülenen hafta
+(Pzt–Paz), `monthly` → görüntülenen ay.
+
+- `teacher-actions.tsx` — kapsam hesabı `viewType`'a göre dallandırıldı (`viewDate` günlük görünümde
+  seçili günü ifade eder).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 102/102, `npm run build` başarılı.
+
+> Aktarım: `modules/study-tasks.md`, `02-architecture.md`, `TEST_SENARYOLARI.md` (S6).
 
 ---
 
@@ -129,3 +219,5 @@ Ayrıca:
 
 Açık iş listesi tek yerde: **`06-yapilacaklar.md`**. (Bu dosya yalnızca tarihli geçmiş/changelog tutar;
 açık talepler `05-backend-talepleri.md` ve görevler `06-yapilacaklar.md`.)
+
+> 2026-10-10 (5) ve öncesi girişler arşive taşındı: **`04-last-work-archive.md`**.

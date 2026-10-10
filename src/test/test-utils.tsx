@@ -1,6 +1,7 @@
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
+import { TaskViewDateProvider } from "@/lib/task-view-date-context";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -25,7 +26,7 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        {children}
+        <TaskViewDateProvider>{children}</TaskViewDateProvider>
       </QueryClientProvider>
     );
   }

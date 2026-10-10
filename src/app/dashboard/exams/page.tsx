@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ExamResultsTable } from "@/components/exams/exam-results-table";
 import { ExamInputModal } from "@/components/exams/exam-input-modal";
-import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
+import { ExamNetTrendCard } from "@/components/charts/lazy-charts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";

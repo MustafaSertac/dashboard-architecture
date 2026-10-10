@@ -42,7 +42,6 @@ export function WeeklyProgressCard() {
       return {
         day: format(date, "EEE", { locale: tr }),
         soru: day?.questionCount ?? 0,
-        dogru: day?.correctCount ?? 0,
       };
     });
   }, [days]);
@@ -94,23 +93,17 @@ export function WeeklyProgressCard() {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                 }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "var(--foreground)" }}
               />
               <Bar
                 dataKey="soru"
-                fill="hsl(var(--chart-1))"
+                fill="var(--chart-1)"
                 radius={[4, 4, 0, 0]}
                 name="Çözülen"
-              />
-              <Bar
-                dataKey="dogru"
-                fill="hsl(var(--chart-2))"
-                radius={[4, 4, 0, 0]}
-                name="Doğru"
               />
             </BarChart>
           </ResponsiveContainer>

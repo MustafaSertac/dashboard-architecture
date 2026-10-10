@@ -13,7 +13,8 @@
 | `01-proje-ozeti.md` | Kısa proje özeti, stack, çalıştırma | Yapı/stack/komut değişince |
 | `02-architecture.md` | Mimari, API client, auth, rol, veri akışı | Davranış/mimari değişince |
 | `03-module-endpoints.md` | Modül & endpoint kataloğu (özet) | Endpoint/alan değişince |
-| `04-last-work.md` | Tarihli changelog (geçmiş) | Her tamamlanan iş sonrası |
+| `04-last-work.md` | Tarihli changelog (yalnızca son 10 giriş) | Her tamamlanan iş sonrası |
+| `04-last-work-archive.md` | Eski changelog girişleri (arşiv) | `04` son 10 girişi aşınca eskiler buraya taşınır |
 | `05-backend-talepleri.md` | **Yalnızca AÇIK** backend talepleri | Eksik/talep eklenince; tamamlanınca **silinir** |
 | `06-yapilacaklar.md` | **Yalnızca AÇIK** yapılacaklar | İş eklenince; tamamlanınca **silinir** |
 | `07-rules.md` | Bu dosya — zorunlu akış | Kural değişince |
@@ -60,10 +61,14 @@ Bir iş **bitmiş sayılmaz**; aşağıdaki adımların tamamı yapılmadan:
 - **R4 — Talep dosyası sadece AÇIK tutar:** Tamamlanan talep `05`'ten derhal silinir.
 - **R5 — Yapılacaklar sadece AÇIK tutar:** Tamamlanan görev `06`'dan derhal silinir.
 - **R6 — Aktarım:** Silinen/biten iş ilgili modül ve dokümanlara işlenir (R7 listesi).
+  `04-last-work.md` **son 10 girişle** sınırlıdır; taşan eski girişler `04-last-work-archive.md`'ye taşınır.
+- **R6b — Performans/iş ölçümü:** Performans iyileştirmelerinde önce ölç (bundle: `ANALYZE=true` build,
+  render: React DevTools Profiler), değişiklikten sonra test/typecheck/build ile doğrula.
 - **R7 — Kapsam:** 01, 02, 03, 04, 05, 06, `07-rules`, `TEST_SENARYOLARI.md` ve modül md'leri
   değişikliğe göre güncellenir.
-- **R8 — Tek sözleşme kaynağı:** Tam API sözleşmesi `docs/BackendTalep.md`; kopyaları
-  (`src/app/FRONTEND_INTEGRATION.md`) onunla tutarlı tutulur.
+- **R8 — Tek sözleşme kaynağı:** Tam API sözleşmesi **`docs/BackendTalep.md` (kanonik)**;
+  `src/app/FRONTEND_INTEGRATION.md` yalnızca ondan **türetilen kopya/oturum notu**dur, bağımsız
+  düzenlenmez. Çelişki olursa `docs/BackendTalep.md` kazanır.
 - **R9 — Mock/fallback yok:** Gerçek API kullanılır; mock/simüle geri eklenmez.
 - **R10 — Türkçe & tarih formatı:** Dokümanlar Türkçe; tarih `YYYY-MM-DD`, tarih paramları `yyyy-MM-dd`.
 
@@ -77,4 +82,19 @@ npm run test:run           # tüm testler
 npx tsc --noEmit           # typecheck
 npm run dev                # geliştirme (backend: http://localhost:5295)
 npm run build              # production build
+$env:ANALYZE="true"; npm run build   # bundle analizi (webpack-bundle-analyzer raporu)
 ```
+
+---
+
+## Modül doküman şablonu (`modules/{modül}.md`)
+
+Yeni bir modül dokümanı oluştururken/güncellerken sabit sıra:
+
+1. **Özet** — modül ne yapar, hangi rol kullanır.
+2. **Endpoint'ler** — method + yol + request/response alanları (kanonik: `docs/BackendTalep.md`).
+3. **Hook'lar** — `use*` listesi, query key'leri, `enabled`/`staleTime`/`placeholderData` notları.
+4. **Mapper'lar** — DTO → UI dönüşümü.
+5. **Akış** — kullanıcı etkileşimi → hook → service sırası.
+6. **Hata kodları** — modüle özel kodlar (katalog: `docs/BackendTalep.md` §7).
+7. **Test** — ilgili test dosyaları + `TEST_SENARYOLARI.md` senaryo no'ları.

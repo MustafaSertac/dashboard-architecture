@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useStudentContext } from "@/lib/student-context";
 import { useAuth } from "@/lib/auth-context";
 import { useAddStudent, useRemoveStudent } from "@/modules/teacher/hooks/useTeacher";
@@ -63,7 +62,6 @@ export function StudentList() {
     refetch,
   } = useStudentContext();
   const { user } = useAuth();
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newStudentId, setNewStudentId] = useState("");
@@ -184,11 +182,6 @@ export function StudentList() {
   const filteredStudents = studentsWithStats.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleViewStudent = (student: typeof studentsWithStats[0]) => {
-    setSelectedStudent(student);
-    router.push(`/teacher/students/${student.id}/daily`);
-  };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "bg-success";
@@ -379,14 +372,20 @@ export function StudentList() {
                     <span>Son aktivite: {student.lastActive}</span>
                   </div>
 
-                  {/* Action Button */}
+                  {/* Action Button - Link rotayi onden yukler (prefetch) */}
                   <Button
-                    onClick={() => handleViewStudent(student)}
+                    asChild
                     className="w-full group-hover:bg-primary"
                     variant="outline"
                   >
-                    Detaylari Gor
-                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                    <Link
+                      href={`/teacher/students/${student.id}/daily`}
+                      prefetch
+                      onClick={() => setSelectedStudent(student)}
+                    >
+                      Detaylari Gor
+                      <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>

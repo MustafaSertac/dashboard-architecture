@@ -87,6 +87,13 @@ interface TeacherRegisterRequest {
   ("KVKK Aydinlatma Metni'ni kabul etmelisiniz").
 - Onay verilince request'e `isKvkVerified: true` olarak gönderilir (backend alanı).
 
+### Ad-soyad normalizasyonu (`formatFullName`, 2026-10-10)
+
+- Register "Ad Soyad" alanı boşluğa göre split edilir; **son parça soyad**, önceki parçalar isim.
+- İsim parçaları: ilk harf büyük, kalanı küçük (Türkçe `tr-TR`). Soyad: **tamamı büyük harf**.
+  Örn. `"ali veli can"` → `"Ali Veli CAN"`, `"ali"` → `"Ali"`.
+- `src/lib/utils.ts` içindeki `formatFullName` kullanılır; input `onBlur`'da ve submit'te uygulanır.
+
 ---
 
 ## Rol & Yönlendirme

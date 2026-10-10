@@ -20,15 +20,17 @@
 | Study-task service | `src/modules/study-tasks/services/study-task.service.test.ts` | today, upcoming(limit), byStudentRange, create, update, delete (body ile), complete, complete/batch, logStudy, focus-session create/get |
 | Analytics service | `src/modules/analytics/services/analytics.service.test.ts` | weekly, monthly (?perSubject), yearly (?perSubject), dashboard |
 | Exam service | `src/modules/exams/services/exam.service.test.ts` | list, detail(?detailed), trends, trendsAll(?teacherId), create, update, delete |
-| Lesson service | `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic |
+| Lesson service | `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic, **getStudentLessons, setStudentLessons, removeStudentLesson, getStudentOwnLessons** |
 | API client | `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope (envelope doğrulama) |
-| StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy` ile göreve yazılır; görev yoksa uyarı + disabled |
+| Utils | `src/lib/utils.test.ts` | `formatFullName` — split + isim/soyad büyük-küçük harf (Türkçe) |
+| StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy`'ye **delta** olarak yazılır (correct/wrong/empty = 0); görev yoksa uyarı + disabled |
 | TaskModal | `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
-| Study-task mapper | `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan `dueDate`/`studentId`/`createdAt` (fallback yok) |
+| Study-task mapper | `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan `dueDate`/`studentId`/`createdAt`; `studiedMinutes`+`studiedSeconds` → `hoursStudied` (fallback yok) |
 | Exam mapper | `src/modules/exams/mappers/exam.mapper.test.ts` | topicResults `correct`/`questionNumbers` doğrudan DTO'dan |
 | Analytics mapper | `src/modules/analytics/mappers/analytics.mapper.test.ts` | `perSubjectStats` doğrudan kullanılır; yoksa boş array |
 | NoteModal | `src/components/teacher/note-modal.test.tsx` | boş not hata toast + başarılı kayıt |
-| TeacherActions | `src/components/teacher/teacher-actions.test.tsx` | "Toplu Onayla" tamamlanmamış task id'lerini gönderir |
+| TeacherActions | `src/components/teacher/teacher-actions.test.tsx` | "Toplu Onayla" haftanın tamamlanmamış task id'lerini gönderir |
+| StudentLessonsView | `src/components/teacher/student-lessons-view.test.tsx` | "Kaydet" seçili ders id'lerini (replace-all) gönderir; yeni seçim listeye eklenir |
 
 ### Çalıştırma
 
@@ -53,6 +55,8 @@ npm test               # watch modunda
 1. `/dashboard/tasks` → "Görev Ekle" (öğretmen/admin) → form doldur → "Ekle"
 2. Yeni görev listeye gerçek API'den düşmeli
 3. Checkbox ile "Onayla" → task `complete` endpoint'i çağırmalı
+4. Tekrar checkbox'a tıkla ("Iptal Et") → `PUT /study-tasks/update` body'sinde `isCompleted: false`
+   gitmeli ve görev tekrar açılmalı
 
 ### S3 — Deneme sonucu ekleme
 1. `/dashboard/exams` → "Sonuç Ekle" → TYT formunu doldur → "Kaydet"
@@ -67,9 +71,15 @@ npm test               # watch modunda
 1. `/teacher/students/{id}/daily` → "Not Ekle" → kategori + not yaz → "Kaydet"
 2. `POST /students/{id}/notes` çağrılmalı (artık simüle değil)
 
-### S6 — Toplu onay
+### S6 — Toplu onay (görüntülenen kapsam)
 1. `/teacher/students/{id}/daily` → "Toplu Onayla"
-2. `POST /study-tasks/complete/batch` çağrılmalı, toast'ta onaylanan sayı gösterilmeli
+2. Günlük görünümde **seçili günün** tamamlanmamış görevleri toplanmalı;
+   `POST /study-tasks/complete/batch` çağrılmalı, toast'ta onaylanan sayı gösterilmeli
+3. Günlük görünümde başka bir güne gezinip "Toplu Onayla" → o günün görevleri onaylanmalı
+4. Haftalık görünümde `Önceki/Sonraki Hafta` ile gezinince onaylanan set görüntülenen haftaya (Pzt–Paz) göre değişmeli
+5. Aylık görünümde (`/monthly`) "Toplu Onayla" → görüntülenen **ayın tamamındaki** tamamlanmamış
+   görevler onaylanmalı; ay gezinmesi onaylanan seti değiştirmeli
+6. Onay sonrası görünüm **dinamik** güncellenmeli (görevler "Tamamlandı", manuel yenileme gerekmez)
 
 ### S7 — Şifre sıfırlama (email akışı)
 1. `/forgot-password` → email gir → "Sıfırlama Bağlantısı Gönder"
@@ -180,11 +190,56 @@ npm test               # watch modunda
 2. Geçerli TeacherJoin kodu girilirse canlı doğrulanmalı ("Kod geçerli")
 3. `POST /auth/teacher` body'sinde `organizationCode` olmalı; kodsuz kayıt da başarılı olmalı
 
+### S27 — Öğrenci detay sayfası: sonsuz render döngüsü yok
+1. Öğretmen olarak giriş → `/teacher/students` listesinden bir öğrenciye tıkla
+2. `/teacher/students/{id}/daily` açılmalı; konsolda **"Maximum update depth exceeded" olmamalı**
+3. Sayfa içinde gezin (`weekly`, `monthly`, `exams`, `analytics`) → her geçişte tek seferlik render,
+   döngü/sürekli yeniden render olmamalı
+4. "Görev Ata" ile TaskModal açılıp kapanabilmeli (dialog portalinde hata olmamalı)
+
+### S28 — Kayıt: ad-soyad normalizasyonu
+1. `/register` → "Ad Soyad" alanına `ali veli can` yaz → alandan çık (blur)
+2. Alan `Ali Veli CAN` olarak biçimlenmeli (isimler baş harf büyük, soyad tamamen büyük)
+3. `ali` yaz → `Ali`; `ayşe nur demir` → `Ayşe Nur DEMİR` (Türkçe karakterler)
+4. Kayıt gönderildiğinde `POST /auth/student|teacher` body'sinde `name` biçimlenmiş haliyle gitmeli
+
+### S29 — Çalışma kaydı toplama (delta), tamamlanmış görev ve geri açma
+1. Bir görevde süreölçerle çalışıp duraklat → `POST /study-tasks/log-study` body'sinde `hours`
+   **yalnızca geçen süre (delta)**, `correctCount/wrongCount/emptyCount=0` olmalı
+2. Aynı göreve ikinci kez kayıt → süre/soru sayıları önceki değere **eklenmeli** (sıfırlanmamalı)
+3. Günlük görünümde görevi "Onayla" ile tamamla → o görevin "Güncelle" butonu **devre dışı** olmalı
+4. Tamamlanmış göreve `log-study` → backend **409** (`TaskAlreadyCompleted`); UI engelliyor
+5. Tamamlanmış görevin checkbox'ı ("Iptal Et") → `PUT /study-tasks/update` `isCompleted:false` ile
+   görev tekrar açılmalı
+6. `targetHours` response'ta en fazla 2 ondalık dönmeli
+
+### S30 — Öğretmen → öğrenci ders atama
+1. Öğretmen olarak `/teacher/students/{id}/lessons` (sidebar "Dersler") → tüm aktif dersler
+   checkbox'lı listelenmeli; mevcut atamalar işaretli gelmeli
+2. Birkaç ders seç → "Kaydet" → `PUT /teachers/{teacherId}/students/{studentId}/lessons`
+   body'sinde `lessonIds` (seçili id'ler) gitmeli; toast başarılı
+3. "Tümünü Seç" + "Temizle" çalışmalı; boş liste ile kaydet tüm atamaları temizlemeli
+4. Öğrenci olarak `/dashboard` → "Derslerim" kartında atanmış dersler görünmeli
+5. `GET /students/{studentId}/lessons` öğrencinin tüm öğretmenlerinin atadığı derslerin birleşimini dönmeli
+
+### S31 — Performans: lazy grafik + gereksiz istek yok
+1. `/dashboard` açılırken grafik kartları (`Haftalık İlerleme`, `Deneme Net Grafiği`) önce kart
+   iskeletiyle görünmeli, ardından grafik yüklenmeli (Recharts `next/dynamic` ile geç yüklenir).
+2. `/dashboard/exams` → TYT/AYT sekmesi değiştirilirken önceki grafik korunmalı (skeleton flaşı yok;
+   `keepPreviousData`).
+3. Öğretmen `/teacher/students/{id}/exams` → **tek öğrenci** modunda ağ sekmesinde yalnızca
+   `GET /exams/trends?studentId=...` görünmeli; `GET /exams/trends/all` **istenmemeli**
+   (ve `studentId=__none__` gibi sentinel istek olmamalı).
+4. `/teacher` (tüm öğrenciler) modunda yalnızca `GET /exams/trends/all?...` istenmeli.
+5. Öğrenci listesinde bir karta hover → ağ sekmesinde `/teacher/students/{id}/daily` rota paketi
+   önden yüklenmeli (Next.js `Link prefetch`).
+
 ---
 
 ## 3. Bilinen Kapsam Dışı / Notlar
 
-- **Lessons/Units/Topics admin CRUD UI** yok — service/hook hazır, TaskModal'a bağlı; ders/ünite/konu yönetimi için ayrı sayfa yok
+- **Lessons/Units/Topics admin CRUD UI** yok — service/hook hazır, TaskModal'a bağlı; ders/ünite/konu
+  yönetimi için ayrı sayfa yok. (Öğretmen→öğrenci **ders atama** UI'ı vardır: S30.)
 - **StudyTimerCard** dashboard'da bugünün görevlerine bağlı; seçili görev gösterilir, birden fazla görevde dropdown ile seçim yapılır, görev yoksa uyarı + "Görev Oluştur" butonu çıkar
 - **ExamTrendsChart** "all students" modu teacher dashboard'da gösteriliyor; tek öğrenci modu `studentId` prop'u ile
 - **Register sayfası** sadece Öğrenci/Öğretmen seçeneği sunar; Admin kaydı UI'dan yapılamaz (backend seed gerekir). Öğrenci kaydında 6 haneli **davet kodu** ve **KVKK onayı** zorunludur

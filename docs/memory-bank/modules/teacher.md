@@ -53,6 +53,14 @@ Hook bunu `TeacherStudent` (`User` + istatistikler, `role: "student"`) modeline 
 
 - `StudentProvider` (`/teacher/layout.tsx`) oturumdaki öğretmenin (`user.id`) öğrenci listesini
   `useTeacherStudents` ile çeker; seçili öğrenci + liste + `isLoading/isError/refetch` sağlar.
+- **Stabilite (2026-10-10):** `studentsWithStats` `useMemo` ile (yalnız `teacherStudents` değişince)
+  üretilir; context değeri de `useMemo`, `setSelectedStudent` `useCallback` ile sabittir. Öğrenci detay
+  `layout.tsx` effect'i `selectedStudentRef` + `selectedStudent?.id !== student.id` guard'ı ile yalnız
+  gerçekten değişince yazar; bağımlılık dizisi sabit boyutta tutulur — aksi halde sonsuz render döngüsü
+  / "useEffect deps changed size" oluşuyordu.
+- **Prefetch (2026-10-10):** Öğrenci kartındaki "Detaylari Gor" artık `next/link` (`prefetch`) ile
+  çalışır (önceki `router.push` rota prefetch'i yapmıyordu); `onClick` seçili öğrenciyi
+  senkron ayarlar.
 - `/teacher` dashboard'u bu veriden toplam/ortalama istatistikler, "dikkat gerektiren" (<%50)
   ve "en iyi" (≥%80) öğrenciler ile tüm-öğrenci net trend karşılaştırmasını gösterir.
 - `/teacher/students` sayfası `StudentList` ile öğrenci ekle (dialog + `studentId`) ve kaldır

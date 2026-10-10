@@ -38,6 +38,7 @@ import {
   BarChart3,
   Building2,
   FileText,
+  BookOpen,
 } from "lucide-react";
 
 const teacherNavigation = [
@@ -52,6 +53,7 @@ const studentDetailNavigation = [
   { name: "Aylik", href: "monthly", icon: CalendarRange },
   { name: "Analiz", href: "analytics", icon: BarChart3 },
   { name: "Denemeler", href: "exams", icon: FileText },
+  { name: "Dersler", href: "lessons", icon: BookOpen },
 ];
 
 export function TeacherLayout({ children }: { children: React.ReactNode }) {

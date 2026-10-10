@@ -87,3 +87,18 @@ export interface UpdateTopicRequest {
   examTypes?: number[];
   isActive?: boolean;
 }
+
+// Ogretmen -> ogrenci ders atama (StudentLessons).
+export interface StudentLessonDTO {
+  id: string;
+  teacherId: string;
+  studentId: string;
+  lessonId: string;
+  lessonCode: number;
+  lessonName?: string;
+  createdAt: string;
+}
+
+export interface SetStudentLessonsRequest {
+  lessonIds: string[];
+}

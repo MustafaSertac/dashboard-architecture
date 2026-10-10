@@ -15,12 +15,12 @@
 | Profile | `profile.service.ts` (auth'u sarar) | `useProfile`, `useUpdateProfile` | 2 | [profile.md](modules/profile.md) |
 | Analytics | `analytics.service.ts` | `useWeeklyAnalytics`, `useMonthlyAnalytics`, `useYearlyAnalytics`, `useDashboardOverview` | 4 | [analytics.md](modules/analytics.md) |
 | Exams | `exam.service.ts` | `useExamList`, `useExamDetail`, `useExamTrends`, `useExamTrendsAll`, `useCreateExam`, `useUpdateExam`, `useDeleteExam` | 7 | [exams.md](modules/exams.md) |
-| Lessons | `lesson.service.ts` | `useLessons`, `useLesson`, `useUnits`, `useTopics`, `useCreate/Update/Delete*` | 13 | [lessons.md](modules/lessons.md) |
+| Lessons | `lesson.service.ts` | `useLessons`, `useLesson`, `useUnits`, `useTopics`, `useCreate/Update/Delete*`, `useStudentLessons`, `useStudentOwnLessons`, `useSetStudentLessons`, `useRemoveStudentLesson` | 17 | [lessons.md](modules/lessons.md) |
 | Notes | `note.service.ts` | `useNotes`, `useCreateNote`, `useDeleteNote` | 3 | [notes.md](modules/notes.md) |
 | Study Tasks | `study-task.service.ts` | `useTodayTasks`, `useUpcomingTasks`, `useTasksByRange`, `useCreate/Update/Delete/CompleteTask`, `useBulkCompleteTasks`, `useLogStudy`, `useFocusSessions`, `useCreateFocusSession` | 11 | [study-tasks.md](modules/study-tasks.md) |
 | Teacher | `teacher.service.ts` | `useTeacherStudents`, `useAddStudent`, `useRemoveStudent` | 3 | [teacher.md](modules/teacher.md) |
 | Organizations | `organization.service.ts` | `useMyOrganization`, `useCreateOrganization`, `useJoinOrganization`, `useUpdateVisibility`, `useOrganizationTeachers`, `useGenerateStudentCode`, `useGenerateTeacherCode`, `useGenerateMyStudentCode`, `useValidateCode` | 9 | [organizations.md](modules/organizations.md) |
-| **Toplam** | | | **60** | |
+| **Toplam** | | | **64** | |
 
 Endpoint tanımları: `src/lib/api/endpoints.ts`
 Query key'leri: `src/lib/query/keys.ts`
@@ -77,6 +77,11 @@ GET    /units/{unitId}/topics
 POST   /units/{unitId}/topics
 PUT    /topics/{topicId}
 DELETE /topics/{topicId}
+# StudentLessons (ogretmen -> ogrenci ders atama)
+GET    /teachers/{teacherId}/students/{studentId}/lessons
+PUT    /teachers/{teacherId}/students/{studentId}/lessons   # body: { lessonIds } (replace-all)
+DELETE /teachers/{teacherId}/students/{studentId}/lessons/{lessonId}
+GET    /students/{studentId}/lessons                         # ogretmenler arasi birlesim
 ```
 
 ### Notes
@@ -92,11 +97,11 @@ GET    /study-tasks/today/{studentId}
 GET    /study-tasks/upcoming/{studentId}?limit
 GET    /study-tasks/students/{studentId}?startDate&endDate
 POST   /study-tasks
-PUT    /study-tasks/update
+PUT    /study-tasks/update            # isCompleted (nullable) ile tamamlanmis task acilip kapanabilir
 DELETE /study-tasks                 # body: { taskId }
 POST   /study-tasks/complete
 POST   /study-tasks/complete/batch  # body: { taskIds }
-POST   /study-tasks/log-study
+POST   /study-tasks/log-study       # degerleri TOPLAR (delta gonderilir); tamamlanmissa 409
 POST   /study-tasks/{taskId}/focus-session
 GET    /study-tasks/{taskId}/focus-sessions?date
 ```

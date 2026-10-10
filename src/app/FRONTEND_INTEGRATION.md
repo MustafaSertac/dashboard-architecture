@@ -575,6 +575,23 @@ interface ExamSummaryDTO {
   "emptyCount": 5
 }
 ```
+> **Artırım (2026-10-10):** Backend log-study değerleri task'a **EKLER** (toplar), üzerine yazmaz.
+> Bu yüzden mutlak değer değil, o oturumdaki **delta** gönderilir. Tamamlanmış (`isCompleted=true`)
+> task için `409 Conflict` (`TaskAlreadyCompleted`) döner.
+
+**UpdateTaskRequest (özet):**
+```typescript
+interface UpdateTaskRequest {
+  taskId: string; studentId?: string;
+  lessonId?: string; lessonTitle?: string; taskType?: number;
+  topicId?: string; unitId?: string; topicTitle?: string;
+  title?: string; description?: string;
+  targetHours?: number; targetQuestions?: number; dueDate?: string;
+  isCompleted?: boolean; // nullable; verilmezse mevcut durum korunur
+}
+```
+> `isCompleted` gönderilerek tamamlanmış bir task tekrar açılabilir/kapatılabilir
+> (`PUT /study-tasks/update`). Örn. `{ "taskId": "...", "isCompleted": false }`.
 
 **StudyTaskDTO:**
 ```typescript
@@ -586,7 +603,8 @@ interface StudyTaskDTO {
   topicId: string; topicTitle: string; unitId?: string;
   title: string; description: string; taskType: number;
   targetHours: number; targetQuestions: number;
-  studiedHours: number; correctCount: number; wrongCount: number;
+  studiedMinutes: number; studiedSeconds: number;
+  correctCount: number; wrongCount: number;
   emptyCount: number; totalQuestions: number; net: number;
   successRate: number; isCompleted: boolean; isTargetAchieved: boolean;
 }
@@ -735,6 +753,33 @@ interface NoteDTO {
 ```typescript
 interface StudentTrendDTO {
   studentId: string; studentName: string; exams: ExamSummaryDTO[];
+}
+```
+
+### 5.10 Student Lessons (öğretmen → öğrenci ders atama)
+
+| Method | Route | Body | Response `data` |
+|--------|-------|------|----------------|
+| GET | `/api/v1.0/teachers/{teacherId}/students/{studentId}/lessons` | — | `StudentLessonDTO[]` |
+| PUT | `/api/v1.0/teachers/{teacherId}/students/{studentId}/lessons` | `{ lessonIds: string[] }` | `StudentLessonDTO[]` |
+| DELETE | `/api/v1.0/teachers/{teacherId}/students/{studentId}/lessons/{lessonId}` | — | `{ message }` |
+| GET | `/api/v1.0/students/{studentId}/lessons` | — | `StudentLessonDTO[]` (öğretmenler arası birleşim) |
+
+- `PUT` **replace-all**: gönderilen liste, öğretmenin o öğrenci için atadığı derslerin tamamıdır;
+  listede olmayanlar soft-delete, yeniler eklenir; **boş liste** tüm atamaları temizler.
+- Öğretmen/öğrenci rolü ve öğrencinin o öğretmene **aktif** `TeacherStudent` bağı doğrulanır;
+  var olmayan/pasif ders atanamaz, yinelenen `lessonId` reddedilir.
+
+**StudentLessonDTO:**
+```typescript
+interface StudentLessonDTO {
+  id: string;
+  teacherId: string;
+  studentId: string;
+  lessonId: string;
+  lessonCode: number;
+  lessonName?: string;
+  createdAt: string;
 }
 ```
 

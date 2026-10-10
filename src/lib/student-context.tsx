@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from "react";
 import { User } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
@@ -33,32 +33,47 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   const { data: teacherStudents, isLoading, isError, error, refetch } =
     useTeacherStudents(user?.id);
 
-  const studentsWithStats: StudentWithStats[] = (teacherStudents ?? []).map(
-    (s) => ({
-      ...s,
-      role: "student" as const,
-      weeklyProgress: s.weeklyProgress,
-      totalTasks: s.totalTasks,
-      completedTasks: s.completedTasks,
-      totalHours: s.totalHours,
-      lastActive: s.lastActive,
-    })
+  const studentsWithStats: StudentWithStats[] = useMemo(
+    () =>
+      (teacherStudents ?? []).map((s) => ({
+        ...s,
+        role: "student" as const,
+        weeklyProgress: s.weeklyProgress,
+        totalTasks: s.totalTasks,
+        completedTasks: s.completedTasks,
+        totalHours: s.totalHours,
+        lastActive: s.lastActive,
+      })),
+    [teacherStudents]
+  );
+
+  const selectStudent = useCallback((student: User | null) => {
+    setSelectedStudent(student);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      selectedStudent,
+      setSelectedStudent: selectStudent,
+      studentsWithStats,
+      isLoading,
+      isError,
+      error,
+      refetch,
+    }),
+    [
+      selectedStudent,
+      selectStudent,
+      studentsWithStats,
+      isLoading,
+      isError,
+      error,
+      refetch,
+    ]
   );
 
   return (
-    <StudentContext.Provider
-      value={{
-        selectedStudent,
-        setSelectedStudent,
-        studentsWithStats,
-        isLoading,
-        isError,
-        error,
-        refetch,
-      }}
-    >
-      {children}
-    </StudentContext.Provider>
+    <StudentContext.Provider value={value}>{children}</StudentContext.Provider>
   );
 }
 

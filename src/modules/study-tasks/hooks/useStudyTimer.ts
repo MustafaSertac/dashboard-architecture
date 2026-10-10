@@ -29,8 +29,9 @@ export function useStudyTimer() {
   const queryClient = useQueryClient();
   const logStudy = useLogStudy(studentId);
 
-  // Geçen süreyi göreve yazar. logStudy replace çalıştığı için mevcut
-  // studiedHours + geçen süre ve görevin güncel doğru/yanlış/boş değerleri gönderilir.
+  // Geçen süreyi göreve yazar. Backend log-study değerleri task'a EKLER
+  // (toplar); bu yüzden yalnızca bu oturumdaki artırım gönderilir. Soru
+  // sonuçları süreölçerle gelmediği için 0 gönderilir.
   const persistElapsed = useCallback(() => {
     const state = useStudyTimerStore.getState();
     const seconds = getLiveSeconds(state, Date.now());
@@ -47,7 +48,7 @@ export function useStudyTimer() {
       return;
     }
 
-    const hours = (task.hoursStudied ?? 0) + seconds / 3600;
+    const hours = seconds / 3600;
 
     // Çift kayıt olmaması için süreyi iyimser olarak sıfırla, hata olursa geri ekle
     useStudyTimerStore.getState().resetElapsed();
@@ -56,9 +57,9 @@ export function useStudyTimer() {
       {
         taskId: state.taskId,
         hours,
-        correctCount: task.correctAnswers ?? 0,
-        wrongCount: task.wrongAnswers ?? 0,
-        emptyCount: task.emptyAnswers ?? 0,
+        correctCount: 0,
+        wrongCount: 0,
+        emptyCount: 0,
       },
       {
         onSuccess: (updated) => {

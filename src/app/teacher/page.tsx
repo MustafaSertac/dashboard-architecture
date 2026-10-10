@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStudentContext } from "@/lib/student-context";
-import { ExamTrendsChart } from "@/components/exams/exam-trends-chart";
+import { ExamTrendsChart } from "@/components/charts/lazy-charts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/error-state";

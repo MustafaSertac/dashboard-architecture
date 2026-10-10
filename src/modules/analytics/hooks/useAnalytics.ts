@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { qk } from "@/lib/query/keys";
 import { analyticsService } from "@/modules/analytics/services/analytics.service";
 import { mapWeeklyAnalytics, mapMonthlyAnalytics, mapDashboardOverview } from "@/modules/analytics/mappers/analytics.mapper";
@@ -11,6 +11,8 @@ export function useWeeklyAnalytics(studentId: string, weekStart: string) {
       return mapWeeklyAnalytics(dto, weekStart, 7);
     },
     enabled: !!studentId && !!weekStart,
+    // Hafta gezinmesinde onceki veriyi koru.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -32,6 +34,8 @@ export function useMonthlyAnalytics(
       return mapMonthlyAnalytics(dto);
     },
     enabled: !!studentId,
+    // Ay gezinmesinde onceki veriyi koru.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -47,6 +51,8 @@ export function useYearlyAnalytics(
       return mapMonthlyAnalytics(dto);
     },
     enabled: !!studentId,
+    // Yil gezinmesinde onceki veriyi koru.
+    placeholderData: keepPreviousData,
   });
 }
 

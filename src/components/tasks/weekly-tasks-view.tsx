@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   format,
   startOfWeek,
@@ -12,6 +12,7 @@ import {
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
+import { useTaskViewDate } from "@/lib/task-view-date-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,9 +49,18 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
 
-  const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const weekEnd = useMemo(
+    () => endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
+    [currentWeekStart]
+  );
   const startDateStr = format(currentWeekStart, "yyyy-MM-dd");
   const endDateStr = format(weekEnd, "yyyy-MM-dd");
+
+  // Toplu onayın görüntülenen haftaya göre çalışması için hafta başlangıcını paylaş.
+  const { setViewDate } = useTaskViewDate();
+  useEffect(() => {
+    setViewDate(currentWeekStart);
+  }, [currentWeekStart, setViewDate]);
 
   const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
@@ -65,11 +75,7 @@ export function WeeklyTasksView({ studentId, role = "student" }: WeeklyTasksView
 
   const weekDays = useMemo(() => {
     const days = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
-    // BACKEND EKSIK #1 (Kritik): dueDate backend'den donmuyor. byStudentRange
-    // tek-gun fallback yerine tum hafta rang'inde cagrildi; backend tamamlanana
-    // kadar tum task'lar "ilk gun" baz alinarak dagitilamiyor. Bu yuzden bu
-    // gorunumde gun bazli dagilim yerine tum haftanin task'lari tek hucrede
-    // (bugunun hucreleri) toplanir. Backend #1 tamamlaninca duzgun calisacak.
+    // Hafta Pazartesi'den Pazar'a 7 gundur; her gorev kendi dueDate hucresine dagitilir.
     return days.map((date): DayData => {
       const dateStr = format(date, "yyyy-MM-dd");
       const dayTasks = (tasks ?? [])

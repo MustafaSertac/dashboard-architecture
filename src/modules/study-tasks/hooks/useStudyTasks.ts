@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { qk } from "@/lib/query/keys";
 import { studyTaskService } from "@/modules/study-tasks/services/study-task.service";
 import { mapStudyTaskToUi } from "@/modules/study-tasks/mappers/study-task.mapper";
@@ -50,6 +50,8 @@ export function useTasksByRange(
       return dtos.map(mapStudyTaskToUi) as Task[];
     },
     enabled: !!studentId && !!startDate && !!endDate,
+    // Hafta/ay gezinirken onceki veriyi koru (skeleton flasi onlenir).
+    placeholderData: keepPreviousData,
   });
 }
 

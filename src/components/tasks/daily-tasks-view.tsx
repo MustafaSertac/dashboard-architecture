@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, addDays, subDays, isToday, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
-import { useTasksByRange, useCompleteTask, useLogStudy } from "@/modules/study-tasks/hooks/useStudyTasks";
+import { useTasksByRange, useCompleteTask, useUpdateTask, useLogStudy } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { qk } from "@/lib/query/keys";
+import { useTaskViewDate } from "@/lib/task-view-date-context";
 import { toast } from "sonner";
 import type { Task } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +40,13 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
   // seçili günden itibaren 7 günlük kayan pencereyi çekiyoruz.
   const rangeStart = format(selectedDate, "yyyy-MM-dd");
   const rangeEnd = format(addDays(selectedDate, 6), "yyyy-MM-dd");
+
+  // Toplu onayın görüntülenen haftaya göre çalışması için seçili tarihi paylaş.
+  const { setViewDate } = useTaskViewDate();
+  useEffect(() => {
+    setViewDate(selectedDate);
+  }, [selectedDate, setViewDate]);
+
   const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,
     rangeStart,
@@ -46,6 +54,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
   );
 
   const completeTask = useCompleteTask(studentId);
+  const updateTask = useUpdateTask(studentId);
   const logStudy = useLogStudy(studentId);
   const queryClient = useQueryClient();
   const rangeKey = qk.tasks.byRange(studentId, rangeStart, rangeEnd);
@@ -83,9 +92,26 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
     });
   };
 
-  const handleSaveEdit = (taskId: string) => {
+  const handleSaveEdit = (task: typeof dailyTasks[number]) => {
     // Inline edit: kullanici dogru/yanlis/bos soru sayisi + calisma saati girer.
-    // Backend logStudy endpoint'i bu degerleri ayri ayri bekler.
+    // Backend logStudy degerleri task'a EKLER (toplar); bu yuzden kullanicinin
+    // girdigi mutlak degerlerin mevcut degerlerden farki (delta) gonderilir.
+    const deltaHours = tempValues.hours - (task.hoursStudied || 0);
+    const deltaCorrect = tempValues.correct - (task.correctAnswers || 0);
+    const deltaWrong = tempValues.wrong - (task.wrongAnswers || 0);
+    const deltaEmpty = tempValues.empty - (task.emptyAnswers || 0);
+
+    setEditingTaskId(null);
+
+    if (
+      deltaHours === 0 &&
+      deltaCorrect === 0 &&
+      deltaWrong === 0 &&
+      deltaEmpty === 0
+    ) {
+      return;
+    }
+
     const previous = queryClient.getQueryData<Task[]>(rangeKey);
     const total =
       tempValues.correct + tempValues.wrong + tempValues.empty;
@@ -93,7 +119,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
     // 1) Kullanicinin girdigine gore aninda (optimistic) guncelle
     queryClient.setQueryData<Task[]>(rangeKey, (old) =>
       (old ?? []).map((t) =>
-        t.id === taskId
+        t.id === task.id
           ? {
               ...t,
               correctAnswers: tempValues.correct,
@@ -105,21 +131,20 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
           : t
       )
     );
-    setEditingTaskId(null);
 
     logStudy.mutate(
       {
-        taskId,
-        hours: tempValues.hours,
-        correctCount: tempValues.correct,
-        wrongCount: tempValues.wrong,
-        emptyCount: tempValues.empty,
+        taskId: task.id,
+        hours: deltaHours,
+        correctCount: deltaCorrect,
+        wrongCount: deltaWrong,
+        emptyCount: deltaEmpty,
       },
       {
         // 3) Sunucu yanitina gore guncelle
         onSuccess: (updated) => {
           queryClient.setQueryData<Task[]>(rangeKey, (old) =>
-            (old ?? []).map((t) => (t.id === taskId ? updated : t))
+            (old ?? []).map((t) => (t.id === task.id ? updated : t))
           );
           toast.success("Görev güncellendi");
         },
@@ -135,6 +160,21 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
   };
 
   const handleToggleComplete = (task: typeof dailyTasks[number]) => {
+    // Tamamlanmis task logStudy'ye kapalidir; geri acmak icin update endpoint'i
+    // isCompleted=false ile cagrilir. Acmak icin complete endpoint'i kullanilir.
+    if (task.isCompleted) {
+      updateTask.mutate(
+        { taskId: task.id, studentId, isCompleted: false },
+        {
+          onError: (err: unknown) => {
+            const msg =
+              err instanceof Error ? err.message : "Görev güncellenemedi";
+            toast.error(msg);
+          },
+        }
+      );
+      return;
+    }
     completeTask.mutate(
       { taskId: task.id },
       {
@@ -202,7 +242,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
               <Clock className="size-4" />
               <span className="text-xs">Saat</span>
             </div>
-            <p className="mt-1 text-2xl font-bold">{totalHours.toFixed(1)}</p>
+            <p className="mt-1 text-2xl font-bold">{totalHours.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -342,7 +382,7 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => handleSaveEdit(task.id)}
+                            onClick={() => handleSaveEdit(task)}
                             disabled={logStudy.isPending}
                           >
                             Kaydet
@@ -379,12 +419,18 @@ export function DailyTasksView({ studentId, role = "student" }: DailyTasksViewPr
                         </div>
                         <div className="flex items-center gap-1.5 text-sm">
                           <Clock className="size-4 text-muted-foreground" />
-                          <span>Saat: {task.hoursStudied}</span>
+                          <span>Saat: {task.hoursStudied.toFixed(2)}</span>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleStartEdit(task)}
+                          disabled={task.isCompleted}
+                          title={
+                            task.isCompleted
+                              ? "Tamamlanmış görevde çalışma kaydı güncellenemez; önce onayı kaldırın"
+                              : undefined
+                          }
                         >
                           Güncelle
                         </Button>

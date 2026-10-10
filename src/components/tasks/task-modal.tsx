@@ -31,7 +31,8 @@ import {
 } from "@/modules/study-tasks/hooks/useStudyTasks";
 import { mapUiTaskFormToCreateRequest } from "@/modules/study-tasks/mappers/study-task.mapper";
 import { useTeacherStudents } from "@/modules/teacher/hooks/useTeacher";
-import { useLessons, useUnits, useTopics } from "@/modules/lessons/hooks/useLessons";
+import { useLessons, useUnits, useTopics, useStudentLessons, useStudentOwnLessons } from "@/modules/lessons/hooks/useLessons";
+import { filterLessonsByAssignment } from "@/modules/lessons/utils/assigned-lessons";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface TaskModalProps {
@@ -60,6 +61,21 @@ export function TaskModal({
   const { data: lessons, isLoading: lessonsLoading } = useLessons();
   const { data: units, isLoading: unitsLoading } = useUnits(selectedLessonId);
   const { data: topics, isLoading: topicsLoading } = useTopics(selectedUnitId);
+
+  // Ders listesi ogrencinin ATANMIS dersleriyle sinirlanir:
+  // ogretmen icin (teacher, student) atamalari, ogrenci icin tum ogretmenlerin birlesimi.
+  // Atanmis ders yoksa tum derslere duser (form yine kullanilabilir).
+  const teacherAssigned = useStudentLessons(
+    isTeacher ? user?.id : undefined,
+    isTeacher ? studentId : undefined
+  );
+  const studentAssigned = useStudentOwnLessons(!isTeacher ? user?.id : undefined);
+  const assignedLessons = isTeacher ? teacherAssigned : studentAssigned;
+  const availableLessons = filterLessonsByAssignment(
+    lessons ?? [],
+    assignedLessons.data ?? []
+  );
+  const lessonsBusy = lessonsLoading || assignedLessons.isLoading;
 
   const selectedLesson = lessons?.find((l) => l.id === selectedLessonId);
   const selectedUnit = units?.find((u) => u.id === selectedUnitId);
@@ -241,7 +257,7 @@ export function TaskModal({
 
           <div>
             <Label htmlFor="lesson">Ders</Label>
-            {lessonsLoading ? (
+            {lessonsBusy ? (
               <Skeleton className="h-9 w-full" />
             ) : (
               <Select
@@ -252,7 +268,7 @@ export function TaskModal({
                   <SelectValue placeholder="Ders seç" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(lessons ?? []).map((lesson) => (
+                  {availableLessons.map((lesson) => (
                     <SelectItem key={lesson.id} value={lesson.id}>
                       {lesson.name}
                     </SelectItem>

@@ -10,6 +10,7 @@ import type {
   UpdateUnitRequest,
   CreateTopicRequest,
   UpdateTopicRequest,
+  StudentLessonDTO,
 } from "@/modules/lessons/types/lesson.types";
 
 export const lessonService = {
@@ -74,5 +75,47 @@ export const lessonService = {
 
   async deleteTopic(topicId: string): Promise<void> {
     await apiClient.delete(endpoints.topics.delete(topicId));
+  },
+
+  // Ogretmen -> ogrenci ders atama (StudentLessons).
+  async getStudentLessons(
+    teacherId: string,
+    studentId: string
+  ): Promise<StudentLessonDTO[]> {
+    const res = await apiClient.get(
+      endpoints.studentLessons.byTeacherStudent(teacherId, studentId)
+    );
+    return res.data.data;
+  },
+
+  // PUT replace-all: gonderilen liste ogrencinin (o ogretmen icin) tam ders setidir.
+  async setStudentLessons(
+    teacherId: string,
+    studentId: string,
+    lessonIds: string[]
+  ): Promise<StudentLessonDTO[]> {
+    const res = await apiClient.put(
+      endpoints.studentLessons.byTeacherStudent(teacherId, studentId),
+      { lessonIds }
+    );
+    return res.data.data;
+  },
+
+  async removeStudentLesson(
+    teacherId: string,
+    studentId: string,
+    lessonId: string
+  ): Promise<void> {
+    await apiClient.delete(
+      endpoints.studentLessons.remove(teacherId, studentId, lessonId)
+    );
+  },
+
+  // Ogrencinin tum ogretmenlerinin atadigi derslerin birlesimi.
+  async getStudentOwnLessons(studentId: string): Promise<StudentLessonDTO[]> {
+    const res = await apiClient.get(
+      endpoints.studentLessons.forStudent(studentId)
+    );
+    return res.data.data;
   },
 };

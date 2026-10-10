@@ -3,11 +3,11 @@
 import { User } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CalendarDays, CalendarRange, BarChart3, FileText } from "lucide-react";
+import { Calendar, CalendarDays, CalendarRange, BarChart3, FileText, BookOpen } from "lucide-react";
 
 interface StudentHeaderProps {
   student: User | null;
-  viewType: "daily" | "weekly" | "monthly" | "analytics" | "exams";
+  viewType: "daily" | "weekly" | "monthly" | "analytics" | "exams" | "lessons";
 }
 
 const viewConfig = {
@@ -35,6 +35,11 @@ const viewConfig = {
     icon: FileText,
     title: "Deneme Sonuçları",
     description: "Deneme sınavı sonuç analizleri",
+  },
+  lessons: {
+    icon: BookOpen,
+    title: "Ders Atama",
+    description: "Öğrencinin çalışacağı dersleri yönet",
   },
 };
 

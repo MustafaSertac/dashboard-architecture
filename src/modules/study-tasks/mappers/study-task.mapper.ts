@@ -18,7 +18,8 @@ export function mapStudyTaskToUi(dto: StudyTaskDTO): Task {
     correctAnswers: dto.correctCount,
     wrongAnswers: dto.wrongCount,
     emptyAnswers: dto.emptyCount,
-    hoursStudied: dto.studiedHours,
+    // Backend artik saat yerine toplam dakika + kalan saniye doner.
+    hoursStudied: (dto.studiedMinutes * 60 + dto.studiedSeconds) / 3600,
     status: isCompleted ? "completed" : hasProgress ? "in-progress" : "pending",
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt ?? dto.createdAt,
@@ -80,5 +81,6 @@ export function mapUiTaskToUpdateRequest(params: {
     targetHours: params.targetHours,
     targetQuestions: params.questionCount,
     dueDate: params.dueDate,
+    isCompleted: params.isCompleted,
   };
 }

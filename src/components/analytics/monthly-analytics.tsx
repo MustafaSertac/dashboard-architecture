@@ -132,7 +132,9 @@ export function MonthlyAnalytics({ studentId: propStudentId }: MonthlyAnalyticsP
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals.totalHours}</div>
+            <div className="text-2xl font-bold">
+              {totals.totalHours.toFixed(2)}
+            </div>
           </CardContent>
         </Card>
         <Card>

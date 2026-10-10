@@ -130,4 +130,43 @@ describe("lessonService", () => {
 
     expect(apiClient.delete).toHaveBeenCalledWith("/topics/t1");
   });
+
+  it("getStudentLessons GET teacher/student lessons endpoint'ini cagirir", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: [] } });
+
+    await lessonService.getStudentLessons("teacher-1", "student-1");
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      "/teachers/teacher-1/students/student-1/lessons"
+    );
+  });
+
+  it("setStudentLessons PUT replace-all (lessonIds) cagirir", async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({ data: { data: [] } });
+
+    await lessonService.setStudentLessons("teacher-1", "student-1", ["l1", "l2"]);
+
+    expect(apiClient.put).toHaveBeenCalledWith(
+      "/teachers/teacher-1/students/student-1/lessons",
+      { lessonIds: ["l1", "l2"] }
+    );
+  });
+
+  it("removeStudentLesson DELETE tek ders atamasini kaldirir", async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({ data: { isSuccess: true } });
+
+    await lessonService.removeStudentLesson("teacher-1", "student-1", "l1");
+
+    expect(apiClient.delete).toHaveBeenCalledWith(
+      "/teachers/teacher-1/students/student-1/lessons/l1"
+    );
+  });
+
+  it("getStudentOwnLessons GET /students/{id}/lessons cagirir", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: [] } });
+
+    await lessonService.getStudentOwnLessons("student-1");
+
+    expect(apiClient.get).toHaveBeenCalledWith("/students/student-1/lessons");
+  });
 });

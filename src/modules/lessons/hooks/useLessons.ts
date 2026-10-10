@@ -123,3 +123,70 @@ export function useDeleteTopic() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["topics"] }),
   });
 }
+
+// Ogretmen -> ogrenci ders atama (StudentLessons).
+
+// Ogretmenin belirli bir ogrencisine atadigi dersler.
+export function useStudentLessons(
+  teacherId: string | undefined | null,
+  studentId: string | undefined | null
+) {
+  return useQuery({
+    queryKey: qk.studentLessons.byTeacherStudent(
+      teacherId ?? "anonymous",
+      studentId ?? "anonymous"
+    ),
+    queryFn: () => lessonService.getStudentLessons(teacherId ?? "", studentId ?? ""),
+    enabled: !!teacherId && !!studentId,
+  });
+}
+
+// Ogrencinin tum ogretmenlerinin atadigi derslerin birlesimi.
+export function useStudentOwnLessons(studentId: string | undefined | null) {
+  return useQuery({
+    queryKey: qk.studentLessons.forStudent(studentId ?? "anonymous"),
+    queryFn: () => lessonService.getStudentOwnLessons(studentId ?? ""),
+    enabled: !!studentId,
+  });
+}
+
+// PUT replace-all; basarida hem ogretmen-ogrenci hem ogrenci birlesim key'ini tazeler.
+export function useSetStudentLessons(
+  teacherId: string | undefined | null,
+  studentId: string | undefined | null
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (lessonIds: string[]) =>
+      lessonService.setStudentLessons(teacherId ?? "", studentId ?? "", lessonIds),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: qk.studentLessons.byTeacherStudent(
+          teacherId ?? "anonymous",
+          studentId ?? "anonymous"
+        ),
+      });
+      qc.invalidateQueries({
+        queryKey: qk.studentLessons.forStudent(studentId ?? "anonymous"),
+      });
+    },
+  });
+}
+
+export function useRemoveStudentLesson(
+  teacherId: string | undefined | null,
+  studentId: string | undefined | null
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (lessonId: string) =>
+      lessonService.removeStudentLesson(
+        teacherId ?? "",
+        studentId ?? "",
+        lessonId
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["student-lessons"] });
+    },
+  });
+}

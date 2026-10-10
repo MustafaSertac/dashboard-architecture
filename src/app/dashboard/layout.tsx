@@ -1,5 +1,10 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { TaskViewDateProvider } from "@/lib/task-view-date-context";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <TaskViewDateProvider>{children}</TaskViewDateProvider>
+    </DashboardLayout>
+  );
 }

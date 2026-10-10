@@ -36,6 +36,15 @@ export const endpoints = {
     delete: (topicId: string) => `/topics/${topicId}`,
   },
 
+  // Ogretmen -> ogrenci ders atama (StudentLessons).
+  studentLessons: {
+    byTeacherStudent: (teacherId: string, studentId: string) =>
+      `/teachers/${teacherId}/students/${studentId}/lessons`,
+    remove: (teacherId: string, studentId: string, lessonId: string) =>
+      `/teachers/${teacherId}/students/${studentId}/lessons/${lessonId}`,
+    forStudent: (studentId: string) => `/students/${studentId}/lessons`,
+  },
+
   exams: {
     list: "/exams",
     detail: (id: string) => `/exams/${id}`,

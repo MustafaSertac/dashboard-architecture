@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, Check, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { UserRole } from "@/lib/types";
+import { formatFullName } from "@/lib/utils";
 import { useValidateCode } from "@/modules/organizations/hooks/useOrganizations";
 import {
   REGISTRATION_CODE_TYPE,
@@ -135,8 +136,11 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
+    const formattedName = formatFullName(name);
+    setName(formattedName);
+
     const result = await register({
-      name,
+      name: formattedName,
       email,
       password,
       phoneNumber,
@@ -186,6 +190,7 @@ export default function RegisterPage() {
                   placeholder="Adinizi girin"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onBlur={(e) => setName(formatFullName(e.target.value))}
                   required
                   autoComplete="name"
                 />

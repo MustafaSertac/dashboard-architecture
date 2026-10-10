@@ -15,7 +15,8 @@ export interface StudyTaskDTO {
   taskType: number;
   targetHours: number;
   targetQuestions: number;
-  studiedHours: number;
+  studiedMinutes: number;
+  studiedSeconds: number;
   correctCount: number;
   wrongCount: number;
   emptyCount: number;
@@ -55,6 +56,7 @@ export interface UpdateTaskRequest {
   targetHours?: number;
   targetQuestions?: number;
   dueDate?: string;
+  isCompleted?: boolean;
 }
 
 export interface DeleteTaskRequest {
@@ -65,6 +67,8 @@ export interface CompleteTaskRequest {
   taskId: string;
 }
 
+// Backend log-study degerleri task'a EKLER (toplar). Bu yuzden mutlak deger
+// degil, o oturumdaki ARTIRIM (delta) gonderilir. Tamamlanmis task -> 409.
 export interface LogTaskStudyRequest {
   taskId: string;
   hours: number;

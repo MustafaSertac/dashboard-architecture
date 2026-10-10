@@ -12,7 +12,10 @@ export function QueryProvider({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30 * 1000,
+            // Okuma agirlikli panel icin 30 sn cok agresifti; mutation'lar
+            // ilgili key'leri invalidate ettiginden 5 dk yeterli ve gereksiz
+            // yeniden fetch'i onler.
+            staleTime: 5 * 60 * 1000,
             retry: 1,
             refetchOnWindowFocus: false,
           },

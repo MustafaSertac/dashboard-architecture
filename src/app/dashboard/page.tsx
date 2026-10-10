@@ -6,9 +6,9 @@ import { TodayTasksCard } from "@/components/dashboard/today-tasks-card";
 import { UpcomingTasksCard } from "@/components/dashboard/upcoming-tasks-card";
 import { QuickStatsCard } from "@/components/dashboard/quick-stats-card";
 import { RecentExamsCard } from "@/components/dashboard/recent-exams-card";
-import { WeeklyProgressCard } from "@/components/dashboard/weekly-progress-card";
+import { WeeklyProgressCard, ExamNetTrendCard } from "@/components/charts/lazy-charts";
 import { StudyTimerCard } from "@/components/dashboard/study-timer-card";
-import { ExamNetTrendCard } from "@/components/dashboard/exam-net-trend-card";
+import { MyLessonsCard } from "@/components/dashboard/my-lessons-card";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -39,6 +39,8 @@ export default function DashboardPage() {
         <TodayTasksCard />
         <UpcomingTasksCard />
       </div>
+
+      <MyLessonsCard />
 
       {/* Progress & Exams Section */}
       <div className="grid gap-6 lg:grid-cols-2">

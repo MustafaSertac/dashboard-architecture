@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useAuth as useAuthHook } from "@/modules/auth/hooks/useAuth";
 import type { User } from "@/lib/types";
 import type { RegisterInput } from "@/modules/auth/types/auth.types";
@@ -19,10 +19,45 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useAuthHook();
+  const {
+    user,
+    isLoading,
+    login,
+    register,
+    logout,
+    forgotPassword,
+    verifyResetToken,
+    resetPassword,
+  } = useAuthHook();
+
+  // Context degeri yalnizca gercekten tuketilen alanlardan olusturulur ve
+  // `useMemo` ile sabitlenir. `accessToken` bu degerin disinda tutulur; boylece
+  // 15 dk'lik token yenilemesi tum `useAuth()` tuketicilerini yeniden render etmez.
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      login,
+      register,
+      logout,
+      forgotPassword,
+      verifyResetToken,
+      resetPassword,
+    }),
+    [
+      user,
+      isLoading,
+      login,
+      register,
+      logout,
+      forgotPassword,
+      verifyResetToken,
+      resetPassword,
+    ]
+  );
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -15,6 +15,7 @@ import {
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useTasksByRange } from "@/modules/study-tasks/hooks/useStudyTasks";
+import { useTaskViewDate } from "@/lib/task-view-date-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +48,12 @@ export function MonthlyTasksView({ studentId, role = "student" }: MonthlyTasksVi
 
   const startDateStr = format(calendarStart, "yyyy-MM-dd");
   const endDateStr = format(calendarEnd, "yyyy-MM-dd");
+
+  // Toplu onayın görüntülenen tarihe göre çalışması için görüntülenen ayı paylaş.
+  const { setViewDate } = useTaskViewDate();
+  useEffect(() => {
+    setViewDate(currentMonth);
+  }, [currentMonth, setViewDate]);
 
   const { data: tasks, isLoading, isError, error, refetch } = useTasksByRange(
     studentId,

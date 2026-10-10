@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { qk } from "@/lib/query/keys";
 import { examService } from "@/modules/exams/services/exam.service";
 import { mapExamDtoToUi } from "@/modules/exams/mappers/exam.mapper";
@@ -35,6 +35,8 @@ export function useExamTrends(studentId: string, examCode: number) {
       return items.map(mapExamDtoToUi) as ExamResult[];
     },
     enabled: !!studentId,
+    // TYT/AYT sekmesi degisirken onceki veriyi koru.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -54,7 +56,7 @@ export function useExamTrendsAll(
         exams: s.exams.map(mapExamDtoToUi) as ExamResult[],
       }));
     },
-    enabled: !!examCode,
+    enabled: !!examCode && !!teacherId,
   });
 }
 

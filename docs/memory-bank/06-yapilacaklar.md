@@ -4,7 +4,7 @@
 > `TEST_SENARYOLARI.md`, `04-last-work.md`, `02-architecture.md` gibi dosyalara aktarılır.
 > Açık backend talepleri: `05-backend-talepleri.md`. Geçmiş: `04-last-work.md`.
 > Çalışma kuralları (İLK OKUNUR): `07-rules.md`.
-> Son güncelleme: 2026-09-27
+> Son güncelleme: 2026-10-10
 
 ---
 
@@ -16,7 +16,7 @@
 ## P1 — Frontend (streak)
 
 - [ ] `src/modules/study-tasks/utils/daily-streak.ts` — `computeDailyStreak(tasks, today)`
-      (`currentStreak`, `longestStreak`, `activeToday`). Aktif gün = `sum(studiedHours) > 0`
+      (`currentStreak`, `longestStreak`, `activeToday`). Aktif gün = `sum(hoursStudied) > 0`
       veya o gün tamamlanmış görev.
 - [ ] `src/modules/study-tasks/hooks/useDailyStreak.ts` — son 90 gün task verisi +
       `useTasksByRange`; backend alanı gelince `quickStats.currentStreak`'e geç.
@@ -42,3 +42,15 @@
 
 - [ ] `05-backend-talepleri.md` — bekleyen talepleri güncelle (yalnızca açık talepler tutulur).
 - [ ] `FRONTEND_INTEGRATION.md` / `BackendTalep.md` referanslarını güncel tut.
+- [ ] **`src/components/ui/chart.tsx` kullanılmıyor** (yalnızca kendi içinde referans) — shadcn
+      ChartContainer sarmalayıcı; kullanılmıyorsa kaldır (bundle'ı etkilemez, bakım sadeliği).
+
+## P3 — Performans (takip)
+
+- [ ] (Opsiyonel) `AuthContext`'i **state** (`user/isLoading`) ve **actions** olarak ikiye ayır;
+      yalnızca aksiyon tüketen ekranların gereksiz render'ını sıfıra indir (şu an context değeri
+      `useMemo` + `accessToken` dışarıda bırakıldı, pratikte churn kalmadı).
+- [ ] (Opsiyonel) React Query veri prefetch'i — öğrenci kartı `onMouseEnter`'da o öğrencinin
+      günlük görev/analytics query'lerini `queryClient.prefetchQuery` ile ısıt.
+- [ ] Bundle analizi çıktısına göre diğer ağır bağımlılıkları (ör. kullanılmayan Radix paketleri)
+      gözden geçir.

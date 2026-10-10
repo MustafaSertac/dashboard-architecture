@@ -86,7 +86,10 @@ Dev proxy: `next.config.mjs` → `/api/v1.0/:path*` ⇒ `http://localhost:5295/a
   `forgotPassword`, `verifyResetToken`, `resetPassword`. Başarılı giriş/kayıtta `setAuth`
   çağrılır ve auth store güncellenir.
 - `lib/auth-context.tsx` — `useAuth` hook'unu React Context olarak sarar; component'ler
-  `useAuth()` ile tüketir.
+  `useAuth()` ile tüketir. Context değeri `useMemo` ile sabitlenir ve **yalnızca tüketilen alanları**
+  (`user`, `isLoading`, login/register/logout/forgot/verify/reset) içerir; `accessToken` değer
+  dışında tutulur (2026-10-10) — böylece 15 dk'lık token yenilemesi tüm `useAuth()` tüketicilerini
+  yeniden render etmez.
 - `components/auth-guard.tsx` — Public path'ler: `/login`, `/register`, `/forgot-password`,
   `/reset-password`. Oturum yoksa `/login`'e; oturum varsa public sayfada role göre
   (`teacher|admin → /teacher`, `student → /dashboard`) yönlendirir. Yükleme sırasında spinner.
@@ -124,8 +127,13 @@ Dev proxy: `next.config.mjs` → `/api/v1.0/:path*` ⇒ `http://localhost:5295/a
   - Görevler: `qk.tasks.allForStudent()` kök `["tasks"]` prefix'i (today/upcoming/range hepsi).
   - Denemeler: liste + detay; Analitik: ilgili key.
   - Notlar: `qk.notes.list(studentId)`; Öğretmen-öğrenci: `qk.teacherStudents(teacherId)`.
-- `staleTime`: ders listesi 5 dk; diğerleri varsayılan.
-- `enabled`: id/param hazır değilse query çalışmaz (ör. `!!studentId`).
+- **Varsayılanlar (`src/providers/QueryProvider.tsx`):** `staleTime` **5 dk**, `retry: 1`,
+  `refetchOnWindowFocus: false` (2026-10-10; 30 sn çok agresifti). Ders listesi de 5 dk.
+- **`placeholderData: keepPreviousData`** — gezinme/sekme değişiminde skeleton flaşını önler:
+  `useTasksByRange`, `useWeeklyAnalytics`/`useMonthlyAnalytics`/`useYearlyAnalytics`, `useExamTrends`.
+- `enabled`: id/param hazır değilse query çalışmaz (ör. `!!studentId`). Trend grafiğinde tek-öğrenci
+  ve tüm-öğrenci sorguları koşulsuz çağrılır ama `enabled` ile yalnızca aktif mod çalışır
+  (`useExamTrendsAll` → `enabled: !!examCode && !!teacherId`).
 
 ---
 
@@ -139,6 +147,14 @@ Dev proxy: `next.config.mjs` → `/api/v1.0/:path*` ⇒ `http://localhost:5295/a
   `/dashboard`'a atar; `/dashboard/tasks` öğretmende öğrenci seçici dropdown gösterir.
 - Öğretmen düzeni `/teacher/layout.tsx` + `StudentProvider` (`lib/student-context.tsx`) —
   seçili öğrenci ve öğretmenin öğrenci listesini (`GET /teachers/{id}/students`) sağlar.
+  `StudentProvider` türetilmiş dizileri/context değerini `useMemo` ile sabitler (2026-10-10);
+  öğrenci detay `layout.tsx` effect'i `selectedStudent` guard'ı ile tekrar `setState` yapmaz
+  (önceki halde `studentsWithStats` her render'da yeni referans olduğu için sonsuz döngü oluşuyordu).
+- **`TaskViewDateProvider`** (`lib/task-view-date-context.tsx`) — öğrenci detay `layout.tsx` ve
+  **`/dashboard/layout.tsx`** içinde sarılır. `daily/weekly/monthly` görev görünümleri seçili
+  tarih/hafta/ayı `setViewDate` ile yayınlar; `TeacherActions` "Toplu Onayla" görüntülenen kapsamın
+  görevlerini onaylar: günlükte seçili gün, haftalıkta görüntülenen hafta (`startOfWeek`/`endOfWeek`,
+  Pzt–Paz), aylıkta görüntülenen ay (`startOfMonth`/`endOfMonth`) (2026-10-10).
 
 ---
 
@@ -150,6 +166,17 @@ Dev proxy: `next.config.mjs` → `/api/v1.0/:path*` ⇒ `http://localhost:5295/a
 - Bildirimler `sonner` toast ile (silme, toplu onay, kayıt hataları...).
 
 ---
+
+## Performans (2026-10-10)
+
+- **Lazy grafikler:** Recharts (~500 KB) ağır bir bağımlılık. Grafik kartları (`WeeklyProgressCard`,
+  `ExamNetTrendCard`, `ExamTrendsChart`) `src/components/charts/lazy-charts.tsx` üzerinden
+  `next/dynamic` (`ssr:false`) ile yüklenir; ilk sayfa JS yükünden çıkarılır, yüklenirken kart
+  iskeleti gösterilir. Sayfalar statik import yerine bu modülden tüketir.
+- **Prefetch:** Öğrenci listesindeki "Detaylari Gor" butonu `next/link` (`prefetch`) kullanır;
+  öğrenci detay rota paketi önden yüklenir (önceki `router.push` rota prefetch'i yapmıyordu).
+- **Ölçüm:** `@next/bundle-analyzer` (dev) — `$env:ANALYZE="true"; npm run build`.
+- React Query cache varsayılanları ve `keepPreviousData` için yukarıdaki "Veri Çekme Deseni".
 
 ## Çalışma Süreölçeri (özel durum)
 

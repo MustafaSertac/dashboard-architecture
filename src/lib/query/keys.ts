@@ -16,6 +16,14 @@ export const qk = {
     list: (unitId: string) => ["topics", unitId] as const,
   },
 
+  // Ogretmen -> ogrenci ders atama (StudentLessons).
+  studentLessons: {
+    byTeacherStudent: (teacherId: string, studentId: string) =>
+      ["student-lessons", teacherId, studentId] as const,
+    forStudent: (studentId: string) =>
+      ["student-lessons", "student", studentId] as const,
+  },
+
   exams: {
     list: (studentId: string, page?: number) =>
       ["exams", "list", studentId, page] as const,

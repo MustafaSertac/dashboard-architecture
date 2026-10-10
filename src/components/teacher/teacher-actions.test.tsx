@@ -15,7 +15,7 @@ vi.mock("@/components/teacher/note-modal", () => ({
 }));
 
 vi.mock("@/modules/study-tasks/hooks/useStudyTasks", () => ({
-  useTodayTasks: () => ({
+  useTasksByRange: () => ({
     data: [
       { id: "t1", status: "pending" },
       { id: "t2", status: "completed" },

@@ -66,8 +66,9 @@ sonuçlarını ve performans analizlerini gördüğü rol tabanlı bir eğitim k
 ```powershell
 npm run dev       # http://localhost:3000 (backend http://localhost:5295 beklenir)
 npm run build     # production build
-npm run test      # vitest (watch)
-npm run test:run  # vitest (tek seferlik)
+npm run test       # vitest (watch)
+npm run test:run   # vitest (tek seferlik)
+$env:ANALYZE="true"; npm run build   # bundle analizi (webpack-bundle-analyzer)
 ```
 
 - Geliştirmede `next.config.mjs` rewrite proxy'si `/api/v1.0/*` isteklerini
