@@ -15,7 +15,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StudyTimerWidget } from "@/components/study/study-timer-widget";
 import {
@@ -26,12 +32,9 @@ import {
   Menu,
   ChevronRight,
   GraduationCap,
-  Users,
-  Shield,
   LogOut,
   User,
 } from "lucide-react";
-import { UserRole } from "@/lib/types";
 
 const navigation = [
   { name: "Ana Sayfa", href: "/dashboard", icon: LayoutDashboard },
@@ -41,21 +44,15 @@ const navigation = [
   { name: "Profil", href: "/dashboard/profile", icon: User },
 ];
 
-const roleIcons: Record<UserRole, React.ReactNode> = {
-  admin: <Shield className="size-4" />,
-  teacher: <Users className="size-4" />,
-  student: <GraduationCap className="size-4" />,
-};
-
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const displayUser = user ?? {
     name: "Kullanici",
-    role: "student" as UserRole,
+    role: "student",
   };
 
   const handleLogout = () => {
@@ -63,10 +60,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
+  const AccountSection = () => (
+    <div className="border-t border-sidebar-border p-4">
+      <Button
+        variant="ghost"
+        className="w-full justify-start gap-3 px-3 py-2 text-destructive hover:text-destructive"
+        onClick={handleLogout}
+      >
+        <LogOut className="size-4" />
+        <span>Çıkış Yap</span>
+      </Button>
+    </div>
+  );
+
   const NavContent = () => (
     <nav className="flex flex-col gap-1 p-3">
       {navigation.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        const isActive =
+          item.href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link
             key={item.name}
@@ -102,51 +115,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto py-4">
             <NavContent />
           </div>
-          <div className="border-t border-sidebar-border p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-auto w-full justify-start gap-3 px-3 py-2"
-                >
-                  <Avatar className="size-8">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {displayUser.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium">{displayUser.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {displayUser.role}
-                    </span>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {/* Demo: switchRole client-side role override (BackendTalep.md notu) */}
-                <DropdownMenuLabel>Rol Degistir (Demo)</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {(["admin", "teacher", "student"] as UserRole[]).map((role) => (
-                  <DropdownMenuItem
-                    key={role}
-                    onClick={() => switchRole?.(role)}
-                    className={cn(displayUser.role === role && "bg-accent")}
-                  >
-                    {roleIcons[role]}
-                    <span className="ml-2 capitalize">{role}</span>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="size-4" />
-                  <span className="ml-2">Cikis Yap</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <AccountSection />
         </div>
       </aside>
 
@@ -163,13 +132,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
-                <div className="flex h-16 items-center gap-2 border-b border-border px-4">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-                    <GraduationCap className="size-5 text-primary-foreground" />
+                <SheetTitle className="sr-only">Navigasyon Menüsü</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Ana sayfa, deneme analiz, görevler, analizler ve profil bağlantıları
+                </SheetDescription>
+                <div className="flex h-full flex-col">
+                  <div className="flex h-16 items-center gap-2 border-b border-border px-4">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
+                      <GraduationCap className="size-5 text-primary-foreground" />
+                    </div>
+                    <span className="text-lg font-semibold">EduCoach</span>
                   </div>
-                  <span className="text-lg font-semibold">EduCoach</span>
+                  <div className="flex-1 overflow-y-auto py-4">
+                    <NavContent />
+                  </div>
+                  <AccountSection />
                 </div>
-                <NavContent />
               </SheetContent>
             </Sheet>
             <span className="text-lg font-semibold">EduCoach</span>
@@ -193,20 +171,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{displayUser.name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(["admin", "teacher", "student"] as UserRole[]).map((role) => (
-                  <DropdownMenuItem
-                    key={role}
-                    onClick={() => switchRole?.(role)}
-                    className={cn(displayUser.role === role && "bg-accent")}
-                  >
-                    {roleIcons[role]}
-                    <span className="ml-2 capitalize">{role}</span>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile">
+                    <User className="size-4" />
+                    <span className="ml-2">Profil</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive"
+                >
                   <LogOut className="size-4" />
-                  <span className="ml-2">Cikis Yap</span>
+                  <span className="ml-2">Çıkış Yap</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

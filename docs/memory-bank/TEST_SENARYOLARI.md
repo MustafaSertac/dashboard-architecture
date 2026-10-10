@@ -13,8 +13,9 @@
 
 | Katman | Test dosyası | Doğrulanan |
 |---|---|---|
-| Auth service | `src/modules/auth/services/auth.service.test.ts` | login, registerStudent, **registerTeacher (`/auth/teacher`)**, refreshToken, logout, getProfile, updateProfile, forgot-password 3-adım |
+| Auth service | `src/modules/auth/services/auth.service.test.ts` | login, registerStudent (**`code` gönderilir**), **registerTeacher (`/auth/teacher`)**, refreshToken, logout, getProfile, updateProfile, forgot-password 3-adım |
 | Teacher service | `src/modules/teacher/services/teacher.service.test.ts` | `GET /teachers/{id}/students`, **addStudent**, **removeStudent** |
+| Organization service | `src/modules/organizations/services/organization.service.test.ts` | create, join, me, visibility(PATCH), teachers, codes, teacher-codes, `/teachers/me/codes`, validate |
 | Notes service | `src/modules/notes/services/note.service.test.ts` | list/create/delete endpoint + teacherId body'ye konmaz |
 | Study-task service | `src/modules/study-tasks/services/study-task.service.test.ts` | today, upcoming(limit), byStudentRange, create, update, delete (body ile), complete, complete/batch, logStudy, focus-session create/get |
 | Analytics service | `src/modules/analytics/services/analytics.service.test.ts` | weekly, monthly (?perSubject), yearly (?perSubject), dashboard |
@@ -90,9 +91,9 @@ npm test               # watch modunda
 2. `POST /study-tasks/{taskId}/focus-session` çağrılmalı (localStorage artık kullanılmıyor)
 
 ### S11 — Öğretmen kaydı (yeni rota)
-1. `/register` aç → "Öğretmen" seç → form doldur → "Kayıt Ol"
-2. `POST /auth/teacher` çağrılmalı (eski `/auth/teachter` değil)
-3. Başarılıysa `/dashboard` → öğretmen paneli görünmeli
+1. `/register` aç → "Öğretmen" seç → form doldur → KVKK onayını işaretle → "Kayıt Ol"
+2. `POST /auth/teacher` çağrılmalı (eski `/auth/teachter` değil); body'de `isKvkVerified: true`, `code` **yok**
+3. Başarılıysa `/teacher` → öğretmen paneli görünmeli
 
 ### S12 — Token refresh (15 dk oturum)
 1. `/dashboard` açık iken 15+ dk bekle (veya token'ı manuel geçersiz kıl)
@@ -145,6 +146,40 @@ npm test               # watch modunda
 3. `DELETE /exams/{id}` çağrılmalı
 4. Sınav listeden kaybolmalı
 
+### S21 — Öğrenci kaydı: davet kodu + KVKK
+1. `/register` → "Öğrenci" seç → "Davet Kodu" input'u görünmeli; boş bırak → "Davet kodu gerekli"
+2. 8 karaktere tamamlanınca `POST /organizations/codes/validate` çağrılmalı; geçerliyse "Kod geçerli"
+3. Geçersiz/kullanılmış kod → "Kod geçersiz, kullanılmış veya süresi dolmuş" (kayıt engellenir)
+4. KVKK metni görünür; checkbox işaretlenmeden "Kayıt Ol" → "KVKK Aydinlatma Metni'ni kabul etmelisiniz"
+5. Geçerli `code` + KVKK onayı ile `POST /auth/student` body'sinde `code` ve `isKvkVerified: true` olmalı
+
+### S22 — Login rol yönlendirmesi (rol değiştirme kapalı)
+1. `ahmet@edu.com` / `teacher123` ile giriş → `/teacher`'a yönlenmeli (öğrenci dashboard'una değil)
+2. `elif@edu.com` / `student123` ile giriş → `/dashboard`'a yönlenmeli
+3. Sidebar/header'da "Rol Değiştir" menüsü **olmamalı**
+
+### S23 — Deneme analiz durumu toggle
+1. `/dashboard/exams` → bir sonuç satırında "Tamam/Bekliyor" switch'ini değiştir
+2. `PUT /exams/{id}` body'sinde `examId`, `examDate`, `examName`, `status` birlikte gitmeli
+3. HTTP 400 (ValidationProblemDetails) **dönmemeli**; switch durumu güncellenmeli
+
+### S24 — Organizasyon oluştur / katıl + görünürlük
+1. `/teacher/organization` → org yoksa "Organizasyon Oluştur" → ad gir → oluştur
+2. Org başlığı + "Tüm öğrencileri gör" Switch görünmeli; Switch kapat → `PATCH /organizations/me/visibility`
+3. Yenile → tercih korunmalı; org öğretmenleri listesi `GET /organizations/{id}/teachers` ile gelmeli
+4. Bir öğretmen koduyla `POST /organizations/join` → üyelik oluşmalı
+
+### S25 — Öğrenci kodu üret ve kodla kayıt
+1. `/teacher/students` → "Ogrenci Kodu Uret" → dialog'da 8 haneli kod + son geçerlilik + kopyala
+2. `POST /teachers/me/codes` çağrılmalı
+3. Öğrenci bu kodla `/register` (Öğrenci) üzerinden kayıt olmalı → `POST /auth/student`
+4. Org üyesi öğretmende kod `/organizations/{id}/codes` ile de üretilebilmeli
+
+### S26 — Öğretmen kaydı: organizasyon kodu (opsiyonel)
+1. `/register` → "Öğretmen" seç → "Organizasyon Kodu (Opsiyonel)" input'u görünmeli
+2. Geçerli TeacherJoin kodu girilirse canlı doğrulanmalı ("Kod geçerli")
+3. `POST /auth/teacher` body'sinde `organizationCode` olmalı; kodsuz kayıt da başarılı olmalı
+
 ---
 
 ## 3. Bilinen Kapsam Dışı / Notlar
@@ -152,5 +187,6 @@ npm test               # watch modunda
 - **Lessons/Units/Topics admin CRUD UI** yok — service/hook hazır, TaskModal'a bağlı; ders/ünite/konu yönetimi için ayrı sayfa yok
 - **StudyTimerCard** dashboard'da bugünün görevlerine bağlı; seçili görev gösterilir, birden fazla görevde dropdown ile seçim yapılır, görev yoksa uyarı + "Görev Oluştur" butonu çıkar
 - **ExamTrendsChart** "all students" modu teacher dashboard'da gösteriliyor; tek öğrenci modu `studentId` prop'u ile
-- **Register sayfası** sadece Öğrenci/Öğretmen seçeneği sunar; Admin kaydı UI'dan yapılamaz (backend seed gerekir)
+- **Register sayfası** sadece Öğrenci/Öğretmen seçeneği sunar; Admin kaydı UI'dan yapılamaz (backend seed gerekir). Öğrenci kaydında 6 haneli **davet kodu** ve **KVKK onayı** zorunludur
+- **Rol değiştirme yok:** `switchRole` kaldırıldı; kullanıcı yalnızca kendi panelinde kalır, girişte role göre yönlendirilir
 - `npm run lint` çalışmıyor — `eslint` projede kurulu değil (`devDependencies`'e eklenebilir)

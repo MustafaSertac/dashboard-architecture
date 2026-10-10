@@ -121,6 +121,7 @@ export interface CreateExamRequest {
 }
 
 export interface UpdateExamRequest {
+  examId?: string;
   studentId?: string;
   examCode?: ExamCode;
   scoreType?: ScoreType;

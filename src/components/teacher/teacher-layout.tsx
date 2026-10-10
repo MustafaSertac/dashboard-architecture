@@ -16,7 +16,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   LayoutDashboard,
@@ -30,12 +36,14 @@ import {
   CalendarDays,
   CalendarRange,
   BarChart3,
+  Building2,
   FileText,
 } from "lucide-react";
 
 const teacherNavigation = [
   { name: "Dashboard", href: "/teacher", icon: LayoutDashboard },
   { name: "Ogrencilerim", href: "/teacher/students", icon: Users },
+  { name: "Organizasyon", href: "/teacher/organization", icon: Building2 },
 ];
 
 const studentDetailNavigation = [
@@ -207,6 +215,10 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
+                <SheetTitle className="sr-only">Navigasyon Menüsü</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Öğretmen paneli navigasyonu
+                </SheetDescription>
                 <div className="flex h-16 items-center gap-2 border-b border-border px-4">
                   <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
                     <GraduationCap className="size-5 text-primary-foreground" />

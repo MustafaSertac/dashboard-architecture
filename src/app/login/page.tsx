@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,9 @@ export default function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      router.push("/dashboard");
+      // Rol degistirme kapali: kullanici yalnizca kendi paneliine yonlendirilir.
+      const role = useAuthStore.getState().user?.role;
+      router.push(role === "teacher" || role === "admin" ? "/teacher" : "/dashboard");
     } else {
       setError(result.error || "Giris basarisiz");
     }
@@ -123,36 +126,6 @@ export default function LoginPage() {
               <Link href="/register" className="text-primary hover:underline font-medium">
                 Kayit Ol
               </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo Accounts */}
-        <Card className="border-border/50 bg-muted/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Demo Hesaplar</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between items-center p-2 rounded-lg bg-background/50">
-              <div>
-                <span className="font-medium">Admin:</span>
-                <span className="text-muted-foreground ml-2">admin@edu.com</span>
-              </div>
-              <span className="text-muted-foreground">admin123</span>
-            </div>
-            <div className="flex justify-between items-center p-2 rounded-lg bg-background/50">
-              <div>
-                <span className="font-medium">Ogretmen:</span>
-                <span className="text-muted-foreground ml-2">ahmet@edu.com</span>
-              </div>
-              <span className="text-muted-foreground">teacher123</span>
-            </div>
-            <div className="flex justify-between items-center p-2 rounded-lg bg-background/50">
-              <div>
-                <span className="font-medium">Ogrenci:</span>
-                <span className="text-muted-foreground ml-2">elif@edu.com</span>
-              </div>
-              <span className="text-muted-foreground">student123</span>
             </div>
           </CardContent>
         </Card>

@@ -3,18 +3,17 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useAuth as useAuthHook } from "@/modules/auth/hooks/useAuth";
 import type { User } from "@/lib/types";
-import type { UiUserRole } from "@/types/common";
+import type { RegisterInput } from "@/modules/auth/types/auth.types";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string, phoneNumber: string, role: UiUserRole) => Promise<{ success: boolean; error?: string }>;
+  register: (input: RegisterInput) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyResetToken: (token: string) => Promise<boolean>;
   resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
-  switchRole: (role: UiUserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

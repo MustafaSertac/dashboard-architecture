@@ -9,21 +9,81 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BookOpen, Check, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { UserRole } from "@/lib/types";
+import { useValidateCode } from "@/modules/organizations/hooks/useOrganizations";
+import {
+  REGISTRATION_CODE_TYPE,
+  isValidRegistrationCode,
+  normalizeRegistrationCode,
+} from "@/modules/organizations/types/organization.types";
+
+function CodeStatus({
+  code,
+  isValid,
+  isChecking,
+  isFetching,
+  info,
+  requireType,
+}: {
+  code: string;
+  isValid: boolean;
+  isChecking: boolean;
+  isFetching: boolean;
+  info?: { valid: boolean; type?: number | null } | null;
+  requireType?: number;
+}) {
+  if (!code.trim()) return null;
+  if (!isValid) {
+    return (
+      <p className="text-xs text-destructive">
+        8 haneli kod girin (harfler A-Z, I/O hariç; rakam 2-9).
+      </p>
+    );
+  }
+  if (isChecking || isFetching) {
+    return <p className="text-xs text-muted-foreground">Kod doğrulanıyor…</p>;
+  }
+  if (!info) return null;
+  const typeOk = requireType === undefined || info.type === requireType;
+  if (info.valid && typeOk) {
+    return (
+      <p className="text-xs text-success flex items-center gap-1">
+        <Check className="w-3 h-3" /> Kod geçerli
+      </p>
+    );
+  }
+  return (
+    <p className="text-xs text-destructive flex items-center gap-1">
+      <X className="w-3 h-3" /> Kod geçersiz, kullanılmış veya süresi dolmuş.
+    </p>
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState(""); 
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
+  const [code, setCode] = useState("");
+  const [organizationCode, setOrganizationCode] = useState("");
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const studentCodeValid = isValidRegistrationCode(code);
+  const teacherCodeValid = isValidRegistrationCode(organizationCode);
+
+  const studentCodeQuery = useValidateCode(role === "student" ? code : "");
+  const teacherCodeQuery = useValidateCode(
+    role === "teacher" ? organizationCode : ""
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +99,58 @@ export default function RegisterPage() {
       return;
     }
 
+    if (role === "student") {
+      if (!code.trim()) {
+        setError("Davet kodu gerekli");
+        return;
+      }
+      if (!studentCodeValid) {
+        setError("Davet kodu 8 haneli olmalidir");
+        return;
+      }
+      if (!studentCodeQuery.data?.valid) {
+        setError("Gecerli bir davet kodu girin");
+        return;
+      }
+    }
+
+    if (role === "teacher" && organizationCode.trim()) {
+      if (!teacherCodeValid) {
+        setError("Organizasyon kodu 8 haneli olmalidir");
+        return;
+      }
+      if (
+        !teacherCodeQuery.data?.valid ||
+        teacherCodeQuery.data?.type !== REGISTRATION_CODE_TYPE.TeacherJoin
+      ) {
+        setError("Gecerli bir organizasyon kodu girin");
+        return;
+      }
+    }
+
+    if (!kvkkAccepted) {
+      setError("KVKK Aydinlatma Metni'ni kabul etmelisiniz");
+      return;
+    }
+
     setIsLoading(true);
 
-    const result = await register(name, email, password, phoneNumber, role);
+    const result = await register({
+      name,
+      email,
+      password,
+      phoneNumber,
+      role,
+      code: role === "student" ? normalizeRegistrationCode(code) : undefined,
+      organizationCode:
+        role === "teacher" && organizationCode.trim()
+          ? normalizeRegistrationCode(organizationCode)
+          : undefined,
+      isKvkVerified: kvkkAccepted,
+    });
 
     if (result.success) {
-      router.push("/dashboard");
+      router.push(role === "teacher" ? "/teacher" : "/dashboard");
     } else {
       setError(result.error || "Kayit basarisiz");
     }
@@ -113,7 +219,13 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Rol</Label>
-                <Select value={role} onValueChange={(value: UserRole) => setRole(value)}>
+                <Select
+                  value={role}
+                  onValueChange={(value: UserRole) => {
+                    setRole(value);
+                    setError("");
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Rol seçin" />
                   </SelectTrigger>
@@ -123,6 +235,59 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {role === "student" && (
+                <div className="space-y-2">
+                  <Label htmlFor="code">Davet Kodu</Label>
+                  <Input
+                    id="code"
+                    type="text"
+                    placeholder="8 haneli davet kodu"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    maxLength={8}
+                    autoComplete="off"
+                    required
+                  />
+                  <CodeStatus
+                    code={code}
+                    isValid={studentCodeValid}
+                    isChecking={code.length > 0 && code.length < 8}
+                    isFetching={studentCodeQuery.isFetching}
+                    info={studentCodeQuery.data}
+                    requireType={REGISTRATION_CODE_TYPE.StudentRegistration}
+                  />
+                </div>
+              )}
+
+              {role === "teacher" && (
+                <div className="space-y-2">
+                  <Label htmlFor="organizationCode">
+                    Organizasyon Kodu (Opsiyonel)
+                  </Label>
+                  <Input
+                    id="organizationCode"
+                    type="text"
+                    placeholder="Varsa 8 haneli katılım kodu"
+                    value={organizationCode}
+                    onChange={(e) =>
+                      setOrganizationCode(e.target.value.toUpperCase())
+                    }
+                    maxLength={8}
+                    autoComplete="off"
+                  />
+                  <CodeStatus
+                    code={organizationCode}
+                    isValid={teacherCodeValid}
+                    isChecking={
+                      organizationCode.length > 0 && organizationCode.length < 8
+                    }
+                    isFetching={teacherCodeQuery.isFetching}
+                    info={teacherCodeQuery.data}
+                    requireType={REGISTRATION_CODE_TYPE.TeacherJoin}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="password">Sifre</Label>
@@ -158,6 +323,46 @@ export default function RegisterPage() {
                   required
                   autoComplete="new-password"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>KVKK Aydinlatma Metni</Label>
+                <div className="max-h-32 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                  <p className="mb-2">
+                    6698 sayili Kisisel Verilerin Korunmasi Kanunu (&quot;KVKK&quot;) uyarinca,
+                    kayit sirasinda ve platformu kullandiginiz surece paylastiginiz ad-soyad,
+                    e-posta, telefon ve egitim verileriniz; uyelik olusturma, egitim-kocluk
+                    hizmetinin sunulmasi, performans takibi ve analiz raporlarinin uretilmesi
+                    amaciyla islenmektedir.
+                  </p>
+                  <p className="mb-2">
+                    Verileriniz; hizmetin gerektirdigi olcude yetkili ogretmen ve sistem
+                    yoneticileriyle paylasilabilir, yasal yukumlulukler disinda ucuncu kisilerle
+                    paylasilmaz. Verileriniz, isleme amacinin gerektirdigi sure boyunca ve ilgili
+                    mevzuatta ongorulen saklama sureleri kadar muhafaza edilir.
+                  </p>
+                  <p>
+                    KVKK kapsamindaki; bilgi talep etme, duzeltme, silinmesini isteme ve islemeye
+                    itiraz etme gibi haklarinizi kullanmak icin platform yonetimine
+                    basvurabilirsiniz. Kayit islemini tamamlayarak asagidaki aydinlatma metnini
+                    okudugunuzu ve kisisel verilerinizin belirtilen sekilde islenmesine onay
+                    verdiginizi beyan etmis olursunuz.
+                  </p>
+                </div>
+                <label
+                  htmlFor="kvkk"
+                  className="flex items-start gap-2 text-sm text-foreground"
+                >
+                  <Checkbox
+                    id="kvkk"
+                    checked={kvkkAccepted}
+                    onCheckedChange={(checked) => setKvkkAccepted(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    KVKK Aydinlatma Metni&apos;ni okudum ve kabul ediyorum.
+                  </span>
+                </label>
               </div>
 
               {error && (

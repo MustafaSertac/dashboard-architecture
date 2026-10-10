@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/modules/auth/store/auth.store";
 import { authService } from "@/modules/auth/services/auth.service";
-import type { UiUserRole } from "@/types/common";
+import type { RegisterInput } from "@/modules/auth/types/auth.types";
 import { roleFromApi } from "@/types/common";
 
 export function useAuth() {
@@ -14,7 +14,6 @@ export function useAuth() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const setUser = useAuthStore((s) => s.setUser);
-  const switchRole = useAuthStore((s) => s.switchRole);
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const login = useCallback(
@@ -30,6 +29,7 @@ export function useAuth() {
           name: data.user.name,
           email: data.user.email,
           role: roleFromApi(data.user.role),
+          organizationId: data.user.organizationId ?? null,
           avatar: data.user.avatar,
           isVerified: data.user.isVerified,
         };
@@ -49,12 +49,18 @@ export function useAuth() {
 
   const register = useCallback(
     async (
-      name: string,
-      email: string,
-      password: string,
-      phoneNumber: string,
-      role: UiUserRole
+      input: RegisterInput
     ): Promise<{ success: boolean; error?: string }> => {
+      const {
+        name,
+        email,
+        password,
+        phoneNumber,
+        role,
+        code,
+        organizationCode,
+        isKvkVerified = false,
+      } = input;
       try {
         let data;
         if (role === "teacher") {
@@ -63,13 +69,20 @@ export function useAuth() {
             email,
             password,
             phoneNumber,
+            organizationCode: organizationCode || undefined,
+            isKvkVerified,
           });
         } else {
+          if (!code) {
+            return { success: false, error: "Davet kodu gerekli" };
+          }
           data = await authService.registerStudent({
             name,
             email,
             password,
             phoneNumber,
+            code,
+            isKvkVerified,
           });
         }
 
@@ -78,6 +91,7 @@ export function useAuth() {
           name: data.user.name,
           email: data.user.email,
           role: roleFromApi(data.user.role),
+          organizationId: data.user.organizationId ?? null,
           avatar: data.user.avatar,
           isVerified: data.user.isVerified,
         };
@@ -162,7 +176,6 @@ export function useAuth() {
     verifyResetToken,
     resetPassword,
     setUser,
-    switchRole,
     accessToken,
   };
 }

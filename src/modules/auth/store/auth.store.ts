@@ -8,6 +8,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UiUserRole;
+  organizationId?: string | null;
   avatar?: string;
   isVerified: boolean;
 }
@@ -25,7 +26,6 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   clearAuth: () => void;
   setUser: (user: AuthUser) => void;
-  switchRole: (role: UiUserRole) => void;
 }
 
 function apiUserToAuthUser(apiUser: {
@@ -63,12 +63,6 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, refreshToken: null, isLoading: false }),
 
       setUser: (user) => set({ user }),
-
-      switchRole: (role) =>
-        set((state) => {
-          if (!state.user) return {};
-          return { user: { ...state.user, role } };
-        }),
     }),
     {
       name: "edc-auth-store",

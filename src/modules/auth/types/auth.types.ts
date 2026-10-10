@@ -3,6 +3,7 @@ export interface UserProfileResponse {
   name: string;
   email: string;
   role: 0 | 1 | 2;
+  organizationId?: string | null;
   avatar?: string;
   isVerified: boolean;
   isKvkVerified: boolean;
@@ -21,20 +22,40 @@ export interface LoginRequest {
   password: string;
 }
 
+// Kayit formu girdisi (hook/context seviyesinde kullanilir).
+export interface RegisterInput {
+  name: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  role: "admin" | "teacher" | "student";
+  code?: string;
+  organizationCode?: string;
+  isKvkVerified?: boolean;
+}
+
 export interface StudentRegisterRequest {
   name: string;
   email: string;
   password: string;
+  // code: 6 haneli ogrenci davet kodu (kurum kodu) — zorunlu.
+  code: string;
+  avatar?: string;
   gender?: 0 | 1;
   phoneNumber?: string;
+  isKvkVerified?: boolean;
 }
 
+// Teacher register'da code alani YOK; organizationCode ile organizasyona katilir (opsiyonel).
 export interface TeacherRegisterRequest {
   name: string;
   email: string;
   password: string;
+  organizationCode?: string;
+  avatar?: string;
   gender?: 0 | 1;
   phoneNumber?: string;
+  isKvkVerified?: boolean;
 }
 
 // BACKEND #9 (Dusuk) TAMAMLANDI: email dogrulamali 3-adimli sifirlama akisi.

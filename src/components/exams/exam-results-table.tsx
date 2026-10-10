@@ -93,6 +93,11 @@ export function ExamResultsTable({
       id: exam.id,
       studentId,
       data: {
+        // Backend UpdateExamRequest bu alanlari zorunlu tutuyor
+        // (ExamId, ExamDate, ExamName). Gorev: status-only guncelleme 400 veriyordu.
+        examId: exam.id,
+        examName: exam.examName || `${exam.examType} Denemesi`,
+        examDate: new Date(exam.date).toISOString(),
         status: checked ? ExamStatus.Completed : ExamStatus.Submitted,
       },
     });

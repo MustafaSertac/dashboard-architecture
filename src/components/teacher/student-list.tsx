@@ -33,6 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { tr } from "date-fns/locale";
 import {
   Users,
   Search,
@@ -43,9 +45,13 @@ import {
   ArrowRight,
   UserPlus,
   UserMinus,
+  Ticket,
+  Copy,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useGenerateMyStudentCode } from "@/modules/organizations/hooks/useOrganizations";
+import type { RegistrationCodeDTO } from "@/modules/organizations/types/organization.types";
 
 export function StudentList() {
   const {
@@ -62,9 +68,40 @@ export function StudentList() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newStudentId, setNewStudentId] = useState("");
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<RegistrationCodeDTO | null>(
+    null
+  );
 
   const addStudent = useAddStudent(user?.id);
   const removeStudent = useRemoveStudent(user?.id);
+  const generateMyCode = useGenerateMyStudentCode();
+
+  const handleGenerateCode = () => {
+    generateMyCode.mutate(
+      { expiresInDays: 7 },
+      {
+        onSuccess: (code) => {
+          setGeneratedCode(code);
+          setCodeDialogOpen(true);
+        },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Kod uretilemedi";
+          toast.error(msg);
+        },
+      }
+    );
+  };
+
+  const handleCopyCode = async () => {
+    if (!generatedCode) return;
+    try {
+      await navigator.clipboard.writeText(generatedCode.code);
+      toast.success("Kod kopyalandi");
+    } catch {
+      toast.error("Kopyalanamadi");
+    }
+  };
 
   const handleAddStudent = () => {
     if (!newStudentId.trim()) {
@@ -185,6 +222,15 @@ export function StudentList() {
               className="pl-9"
             />
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateCode}
+            disabled={generateMyCode.isPending}
+          >
+            <Ticket className="mr-2 size-4" />
+            Ogrenci Kodu Uret
+          </Button>
           <Button size="sm" onClick={() => setAddDialogOpen(true)}>
             <UserPlus className="mr-2 size-4" />
             Ekle
@@ -398,6 +444,45 @@ export function StudentList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Student Registration Code Dialog */}
+      <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ogrenci Kayit Kodu</DialogTitle>
+            <DialogDescription>
+              Bu kodu ogrencinizle paylasin. Ogrenci kayit ekraninda bu kodu girerek
+              size baglanir. Tek kullanimliktir.
+            </DialogDescription>
+          </DialogHeader>
+          {generatedCode && (
+            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
+              <div>
+                <p className="font-mono text-2xl font-bold tracking-widest">
+                  {generatedCode.code}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Son gecerlilik:{" "}
+                  {format(parseISO(generatedCode.expiresAt), "d MMMM yyyy HH:mm", {
+                    locale: tr,
+                  })}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyCode}
+                aria-label="Kopyala"
+              >
+                <Copy className="size-4" />
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCodeDialogOpen(false)}>Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -17,22 +17,22 @@
 
 ### CORS Çözümü
 
-**Seçenek A — Vite Dev Proxy (önerilen):**
+**Seçenek A — Next.js Rewrite Proxy (mevcut, önerilen):**
 ```javascript
-// vite.config.ts
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5295',
-        changeOrigin: true
-      }
-    }
+// next.config.mjs
+async rewrites() {
+  if (process.env.NODE_ENV === "development") {
+    return [{
+      source: "/api/v1.0/:path*",
+      destination: "http://localhost:5295/api/v1.0/:path*",
+    }];
   }
-})
+  return [];
+}
 ```
+Frontend `API_BASE_URL = "/api/v1.0"` ile aynı origin'den çağırır; CORS preflight gerekmez.
 
-**Seçenek B — Backend'e CORS ekle:**
+**Seçenek B — Backend'e CORS ekle (opsiyonel):**
 ```csharp
 // Program.cs
 builder.Services.AddCors(o => o.AddPolicy("dev", b => 
@@ -115,15 +115,20 @@ HTTP status code JSON body'de **DEĞİLDİR** — HTTP header'da gelir (200, 201
 |--------|-------|------|-------------|----------------|
 | POST | `/auth/login` | AllowAnonymous | `{ email, password }` | `AuthResponse` |
 | POST | `/auth/student` | AllowAnonymous | `StudentRegisterRequest` | `AuthResponse` (201) |
-| POST | `/auth/teachter` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) |
+| POST | `/auth/teacher` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) |
+| POST | `/auth/teachter` | AllowAnonymous | `TeacherRegisterRequest` | `AuthResponse` (201) — **deprecated** |
 | POST | `/auth/forgot-password` | AllowAnonymous | `{ email, newPassword }` | `{ message }` (deprecated) |
 | POST | `/auth/forgot-password/request` | AllowAnonymous | `{ email }` | `{ message }` |
 | POST | `/auth/forgot-password/verify` | AllowAnonymous | `{ token }` | `{ valid: boolean }` |
 | POST | `/auth/forgot-password/reset` | AllowAnonymous | `{ token, newPassword }` | `{ message }` |
-| POST | `/auth/refresh-token` | JWT gerekli | `{ refreshToken }` | `AuthResponse` |
+| POST | `/auth/refresh-token` | **AllowAnonymous** | `{ refreshToken }` | `AuthResponse` |
 | POST | `/auth/logout` | JWT gerekli | `{ refreshToken }` | `{ message }` |
 | GET | `/auth/profiles/{userId}` | JWT gerekli | — | `UserProfileResponse` |
 | PUT | `/auth/profiles` | JWT gerekli | `UpdateProfileRequest` | `UserProfileResponse` |
+
+> **⚠️ Kritik:** `POST /auth/refresh-token` **AllowAnonymous** olmalıdır. Frontend interceptor,
+> süresi dolan access token ile Bearer header göndermeden bu endpoint'i çağırır. JWT zorunlu
+> olursa 15 dk'da bir oturum düşer.
 
 ### Auth DTO'lar
 
@@ -217,7 +222,7 @@ const TaskType = { Assigned: 0, UnAssigned: 1 } as const;
 
 ---
 
-## 5. Tüm Endpoint Kataloğu (39 endpoint)
+## 5. Tüm Endpoint Kataloğu (51 endpoint)
 
 ### 5.1 Lessons
 
@@ -664,10 +669,16 @@ interface DashboardOverviewDTO {
   quickStats: {
     totalSolvedQuestions: number; completedTasks: number;
     pendingTasks: number; latestNet?: number;
+    currentStreak: number;   // YENİ (talep): kesintisiz aktif gün sayısı
+    longestStreak: number;   // YENİ (talep): en uzun aktif gün serisi
   };
   recentExams: ExamSummaryDTO[];
 }
 ```
+
+> **YENİ TALEP — `currentStreak` / `longestStreak`:** Aktif gün = o gün `log-study` ile >0 saat
+> veya en az bir tamamlanmış görev. `currentStreak` bugünü içerir; bugün boşsa dünden geriye
+> sayılır (seri kırılmaz). Route değişmez → geriye uyumlu. Takip: memory-bank `05`. 
 
 ### 5.7 Teachers
 

@@ -55,6 +55,14 @@ export const qk = {
   teacherStudents: (teacherId: string) =>
     ["teacher", "students", teacherId] as const,
 
+  organizations: {
+    me: ["organizations", "me"] as const,
+    teachers: (organizationId: string) =>
+      ["organizations", organizationId, "teachers"] as const,
+    validateCode: (code: string) =>
+      ["organizations", "code-validate", code] as const,
+  },
+
   // BACKEND EKSIK #5: Notlar.
   notes: {
     list: (studentId: string) => ["notes", "list", studentId] as const,

@@ -28,9 +28,9 @@ describe("authService (temel akis)", () => {
   it("registerStudent /auth/student endpoint'ini cagirir", async () => {
     vi.mocked(apiClient.post).mockResolvedValue({ data: { data: { accessToken: "at", refreshToken: "rt", user: { id: "u2", name: "S", email: "s@x.com", role: 2, isVerified: true, isKvkVerified: true, phoneNumber: "1", gender: 0 } } } });
 
-    await authService.registerStudent({ name: "S", email: "s@x.com", password: "pw" });
+    await authService.registerStudent({ name: "S", email: "s@x.com", password: "pw", code: "123456" });
 
-    expect(apiClient.post).toHaveBeenCalledWith("/auth/student", { name: "S", email: "s@x.com", password: "pw" });
+    expect(apiClient.post).toHaveBeenCalledWith("/auth/student", { name: "S", email: "s@x.com", password: "pw", code: "123456" });
   });
 
   it("registerTeacher /auth/teacher endpoint'ini cagirir (onemli rota)", async () => {

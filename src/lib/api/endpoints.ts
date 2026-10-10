@@ -73,6 +73,26 @@ export const endpoints = {
       `/teachers/${teacherId}/students/${studentId}`,
   },
 
+  teachers: {
+    // Bagimsiz veya org uyesi ogretmen ogrenci kayit kodu uretir.
+    myCodes: "/teachers/me/codes",
+  },
+
+  // Organization + registration-code bounded context.
+  organizations: {
+    create: "/organizations",
+    join: "/organizations/join",
+    me: "/organizations/me",
+    visibility: "/organizations/me/visibility",
+    teachers: (organizationId: string) =>
+      `/organizations/${organizationId}/teachers`,
+    codes: (organizationId: string) =>
+      `/organizations/${organizationId}/codes`,
+    teacherCodes: (organizationId: string) =>
+      `/organizations/${organizationId}/teacher-codes`,
+    validateCode: "/organizations/codes/validate",
+  },
+
   // BACKEND #5 (Orta) TAMAMLANDI: Not/Feedback endpoint'i.
   notes: {
     list: (studentId: string) => `/students/${studentId}/notes`,
