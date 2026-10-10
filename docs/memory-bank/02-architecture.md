@@ -121,7 +121,7 @@ Dev proxy: `next.config.mjs` → `/api/v1.0/:path*` ⇒ `http://localhost:5295/a
 ## Veri Çekme Deseni (React Query)
 
 - Query key'leri tek merkezde: `src/lib/query/keys.ts` → `qk.*` (auth, lessons, units, topics,
-  exams, tasks, analytics, teacherStudents, notes, organizations).
+  studentLessons, exams, tasks, analytics, teacherStudents, notes, organizations).
 - Her modül hook'ları `qk` key'i + `service` çağrısı + (varsa) `mapper` ile model döner.
 - Mutation'lar `onSuccess`'te ilgili query'leri invalidate eder:
   - Görevler: `qk.tasks.allForStudent()` kök `["tasks"]` prefix'i (today/upcoming/range hepsi).

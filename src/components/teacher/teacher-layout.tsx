@@ -151,6 +151,35 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     </nav>
   );
 
+  const AccountSection = () => (
+    <div className="border-t border-sidebar-border p-4">
+      <div className="mb-3 flex items-center gap-3">
+        <Avatar className="size-8">
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {displayUser.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-sm font-medium">{displayUser.name}</span>
+          <span className="text-xs text-muted-foreground capitalize">
+            {displayUser.role}
+          </span>
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        className="w-full justify-start gap-3 px-3 py-2 text-destructive hover:text-destructive"
+        onClick={handleLogout}
+      >
+        <LogOut className="size-4" />
+        <span>Çıkış Yap</span>
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
@@ -168,39 +197,7 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto py-4">
             <NavContent />
           </div>
-          <div className="border-t border-sidebar-border p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-auto w-full justify-start gap-3 px-3 py-2"
-                >
-                  <Avatar className="size-8">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {displayUser.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium">{displayUser.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {displayUser.role}
-                    </span>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>{displayUser.name}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="size-4" />
-                  <span className="ml-2">Cikis Yap</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <AccountSection />
         </div>
       </aside>
 
@@ -221,13 +218,18 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <SheetDescription className="sr-only">
                   Öğretmen paneli navigasyonu
                 </SheetDescription>
-                <div className="flex h-16 items-center gap-2 border-b border-border px-4">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-                    <GraduationCap className="size-5 text-primary-foreground" />
+                <div className="flex h-full flex-col">
+                  <div className="flex h-16 items-center gap-2 border-b border-border px-4">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
+                      <GraduationCap className="size-5 text-primary-foreground" />
+                    </div>
+                    <span className="text-lg font-semibold">EduCoach</span>
                   </div>
-                  <span className="text-lg font-semibold">EduCoach</span>
+                  <div className="flex-1 overflow-y-auto py-4">
+                    <NavContent />
+                  </div>
+                  <AccountSection />
                 </div>
-                <NavContent />
               </SheetContent>
             </Sheet>
             <div className="flex items-center gap-1">

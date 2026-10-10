@@ -84,7 +84,8 @@ today/upcoming/range/focus-session query'leri birlikte tazelenir.
 ## Akış / Notlar
 
 - `/dashboard/tasks` → Günlük/Haftalık/Aylık sekmeler + `TaskModal`. Öğretmende öğrenci seçici
-  (`useTeacherStudents`), öğrencide kendi id'si.
+  (`useTeacherStudents`), öğrencide kendi id'si. **TaskModal "Ders" listesi öğrencinin atanmış
+  dersleriyle sınırlıdır** (`filterLessonsByAssignment`; atama yoksa tüm dersler) — 2026-10-10.
 - Öğretmen öğrenci detayında (`/teacher/students/{id}/daily`) `TeacherActions` "Toplu Onayla"
   butonu görüntülenen kapsamdaki tamamlanmamış görevleri (`useTasksByRange`) toplayıp
   `useBulkCompleteTasks` çağırır; toast'ta onaylanan/başarısız sayısı gösterilir. Kapsam görünüme göre

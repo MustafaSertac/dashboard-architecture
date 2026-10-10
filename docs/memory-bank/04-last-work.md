@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-10-10 (17) — Öğretmen paneli: çıkış yan navigation drawer'a taşındı
+
+Öğretmen düzeninde "Çıkış Yap" artık yan navigasyon drawer'ında (masaüstü sidebar + mobil drawer)
+doğrudan görünür.
+
+- `teacher-layout.tsx` — yeni `AccountSection` (avatar + ad/rol + "Çıkış Yap" butonu); masaüstü
+  sidebar'ın altındaki dropdown kaldırıldı, yerine `AccountSection` kondu; mobil `Sheet` drawer'a da
+  eklendi (brand + kaydırılabilir nav + hesap bölümü). Öğrenci düzeninde zaten mevcuttu.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 121/121, `npm run build` başarılı.
+
+> Aktarım: `modules/teacher.md`.
+
+---
+
 ## 2026-10-10 (16) — Öğrenci ders atama + görev formu ders filtresi
 
 Backend `StudentLessons` özelliği frontend'e bağlandı; görev formundaki ders listesi atanan derslerle

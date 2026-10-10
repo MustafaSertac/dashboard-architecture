@@ -61,6 +61,8 @@ Hook bunu `TeacherStudent` (`User` + istatistikler, `role: "student"`) modeline 
 - **Prefetch (2026-10-10):** Öğrenci kartındaki "Detaylari Gor" artık `next/link` (`prefetch`) ile
   çalışır (önceki `router.push` rota prefetch'i yapmıyordu); `onClick` seçili öğrenciyi
   senkron ayarlar.
+- **Çıkış (2026-10-10):** "Çıkış Yap" yan navigation drawer'da (masaüstü sidebar + mobil `Sheet`)
+  `AccountSection` içinde doğrudan gösterilir; masaüstü alt dropdown kaldırıldı.
 - `/teacher` dashboard'u bu veriden toplam/ortalama istatistikler, "dikkat gerektiren" (<%50)
   ve "en iyi" (≥%80) öğrenciler ile tüm-öğrenci net trend karşılaştırmasını gösterir.
 - `/teacher/students` sayfası `StudentList` ile öğrenci ekle (dialog + `studentId`) ve kaldır

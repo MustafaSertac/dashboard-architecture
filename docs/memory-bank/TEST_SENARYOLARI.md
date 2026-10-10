@@ -25,6 +25,7 @@
 | Utils | `src/lib/utils.test.ts` | `formatFullName` — split + isim/soyad büyük-küçük harf (Türkçe) |
 | StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy`'ye **delta** olarak yazılır (correct/wrong/empty = 0); görev yoksa uyarı + disabled |
 | TaskModal | `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
+| Assigned-lessons util | `src/modules/lessons/utils/assigned-lessons.test.ts` | `filterLessonsByAssignment` — atama varsa yalnız atananlar, yoksa tüm dersler |
 | Study-task mapper | `src/modules/study-tasks/mappers/study-task.mapper.test.ts` | DTO'dan doğrudan `dueDate`/`studentId`/`createdAt`; `studiedMinutes`+`studiedSeconds` → `hoursStudied` (fallback yok) |
 | Exam mapper | `src/modules/exams/mappers/exam.mapper.test.ts` | topicResults `correct`/`questionNumbers` doğrudan DTO'dan |
 | Analytics mapper | `src/modules/analytics/mappers/analytics.mapper.test.ts` | `perSubjectStats` doğrudan kullanılır; yoksa boş array |
@@ -133,7 +134,8 @@ npm test               # watch modunda
 
 ### S17 — Gerçek ders/konu ile görev oluşturma
 1. `/teacher/students/{id}/daily` → "Görev Ata"
-2. Ders dropdown'ı backend'den `GET /lessons` ile gelmeli (sabit liste değil)
+2. Ders dropdown'ı backend'den gelmeli; öğrenciye **atanmış dersler** listelenmeli
+   (atama yoksa tüm `GET /lessons` sonuçları)
 3. Ders seç → Ünite dropdown'ı `GET /lessons/{id}/units` ile gelmeli
 4. Ünite seç → Konu dropdown'ı `GET /units/{id}/topics` ile gelmeli
 5. Network sekmesinde `POST /study-tasks` body'sinde gerçek `lessonId`/`unitId`/`topicId` olmalı
@@ -221,6 +223,8 @@ npm test               # watch modunda
 3. "Tümünü Seç" + "Temizle" çalışmalı; boş liste ile kaydet tüm atamaları temizlemeli
 4. Öğrenci olarak `/dashboard` → "Derslerim" kartında atanmış dersler görünmeli
 5. `GET /students/{studentId}/lessons` öğrencinin tüm öğretmenlerinin atadığı derslerin birleşimini dönmeli
+6. Öğrenci/öğretmen görev formunu (`TaskModal`) aç → "Ders" listesinde yalnızca **atanmış dersler**
+   görünmeli (atama yoksa tüm dersler)
 
 ### S31 — Performans: lazy grafik + gereksiz istek yok
 1. `/dashboard` açılırken grafik kartları (`Haftalık İlerleme`, `Deneme Net Grafiği`) önce kart
