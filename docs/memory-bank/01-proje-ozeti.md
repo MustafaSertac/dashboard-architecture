@@ -77,6 +77,23 @@ $env:ANALYZE="true"; npm run build   # bundle analizi (webpack-bundle-analyzer)
   `NEXT_PUBLIC_API_BASE_URL` ile gerçek backend adresi verilir.
 - Testler mock'ludur, backend gerektirmez.
 
+### Docker
+
+```powershell
+docker compose build      # production imajı
+docker compose up -d      # http://localhost:3000
+```
+
+- `Dockerfile` — çok aşamalı Next.js production imaji (`node:22-alpine`, `output: "standalone"` →
+  `.next/standalone/server.js`), non-root kullanıcı.
+- `docker-compose.yaml` — `frontend` servisi (3000). Backend bu repoda containerize edilmemiştir;
+  `.NET` API host'ta veya kendi deposunda çalışır.
+- `NEXT_PUBLIC_API_BASE_URL` **build-time** bundle'a gömülür; backend adresi değişince imajı
+  yeniden build et: `NEXT_PUBLIC_API_BASE_URL=http://host:5295/api/v1.0 docker compose build`.
+- İstekler tarayıcıdan atılır → adres tarayıcıdan erişilebilir olmalı (backend CORS açık).
+  `.env.local` `.dockerignore` ile imaja kopyalanmaz; varsayılan
+  `http://localhost:5295/api/v1.0`.
+
 ---
 
 ## Dizin Haritası (üst düzey)

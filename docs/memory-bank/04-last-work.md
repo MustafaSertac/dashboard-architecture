@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-10-11 (20) — Frontend için Docker (Dockerfile + docker-compose)
+
+Frontend production ortamı için Docker dosyaları eklendi.
+
+- **`Dockerfile`** — çok aşamalı Next.js build (`node:22-alpine`): `deps` (`npm ci`) → `builder`
+  (`npm run build`) → `runner` (`output: "standalone"`, non-root `nextjs`, `server.js`).
+  `NEXT_PUBLIC_API_BASE_URL` build arg'ı (bundle'a gömülür).
+- **`next.config.mjs`** — `output: "standalone"` eklendi (imaj için minimal self-contained çıktı).
+- **`docker-compose.yaml`** — `frontend` servisi (3000, healthcheck, `NEXT_PUBLIC_API_BASE_URL`
+  varsayılan `http://localhost:5295/api/v1.0`); backend servisi yorumlu örnek olarak bırakıldı.
+- **`.dockerignore`** — `node_modules`, `.next`, `.git`, `.env.*`, `docs`, `*.png` vb. hariç.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 123/123, `npm run build` başarılı
+(`.next/standalone/server.js` üretildi); `docker compose config` geçerli, `docker compose build`
+başarılı, `docker compose up` sonrası `GET http://127.0.0.1:3000/login` → **200**.
+
+> Aktarım: `01-proje-ozeti.md` (Docker bölümü).
+
+---
+
 ## 2026-10-11 (19) — Login 401 hata akışı düzeltmesi
 
 Hatalı girişte backend `401 ERR_INVALID_CREDENTIALS` dönerken `apiClient` interceptor'ı bunu

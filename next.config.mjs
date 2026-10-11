@@ -6,6 +6,8 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Docker icin kucuk, self-contained production cikti (.next/standalone).
+  output: "standalone",
   typescript: {
     ignoreBuildErrors: false,
   },

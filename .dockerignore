@@ -1,0 +1,26 @@
+# Bagimliliklar / build ciktilari (imaja kopyalanmaz)
+node_modules
+.next
+out
+build
+
+# Git / editör / os
+.git
+.gitignore
+.vscode
+.idea
+*.log
+
+# Ortam / gizli dosyalar
+.env
+.env.*
+!.env.example
+
+# Dokumantasyon / arsiv / ekran goruntuleri
+docs
+*.zip
+*.png
+
+# Test / yerel
+coverage
+tsconfig.tsbuildinfo
