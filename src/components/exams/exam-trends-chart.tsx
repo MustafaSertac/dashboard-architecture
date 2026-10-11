@@ -47,54 +47,74 @@ export function ExamTrendsChart({ examType, studentId }: ExamTrendsChartProps) {
 
   const query = isAllStudents ? all : single;
 
-  const chartData = useMemo(() => {
+  const { chartData, series } = useMemo(() => {
     if (isAllStudents) {
       // Cok-ogrenci: her ogrenci bir cizgi. Tarihler birlesik eksende.
+      // Denemesi olmayan ogrenciler (exams null/bos) cizgi olusturmaz; aksi halde
+      // bir ogrencinin verisi eksik oldugunda tum grafik etkileniyordu.
       const trends = (query.data as ReturnType<typeof useExamTrendsAll>["data"]) ?? [];
+      const withExams = trends.filter((t) => (t.exams ?? []).length > 0);
       const dates = Array.from(
-        new Set(
-          trends.flatMap((t) =>
-            t.exams.map((e) => e.date)
-          )
-        )
+        new Set(withExams.flatMap((t) => (t.exams ?? []).map((e) => e.date)))
       ).sort();
 
-      return dates.map((date) => {
+      // dataKey olarak ogrenci adi kullanilmiyor (ayni isim / ozel karakter / bos ad
+      // cizgiyi bozuyordu); benzersiz index anahtari + gorunen ad kullanilir.
+      const series = withExams.map((t, index) => ({
+        key: `student-${index}`,
+        name: t.studentName || `Ogrenci ${index + 1}`,
+      }));
+
+      const chartData = dates.map((date) => {
         const point: Record<string, string | number> = {
           date: format(parseISO(date), "d MMM", { locale: tr }),
         };
-        trends.forEach((t) => {
-          const exam = t.exams.find((e) => e.date === date);
-          if (exam) point[t.studentName] = Number(exam.totalNet.toFixed(1));
+        withExams.forEach((t, index) => {
+          const exam = (t.exams ?? []).find((e) => e.date === date);
+          if (exam) {
+            point[`student-${index}`] = Number((exam.totalNet ?? 0).toFixed(1));
+          }
         });
         return point;
       });
+
+      return { chartData, series };
     }
 
-    return ((query.data as ReturnType<typeof useExamTrends>["data"]) ?? [])
+    const chartData = ((query.data as ReturnType<typeof useExamTrends>["data"]) ?? [])
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((e) => ({
         date: format(parseISO(e.date), "d MMM", { locale: tr }),
-        net: Number(e.totalNet.toFixed(1)),
+        net: Number((e.totalNet ?? 0).toFixed(1)),
         examName: e.examName ?? `${e.examType} Denemesi`,
       }));
+
+    return { chartData, series: [] as { key: string; name: string }[] };
   }, [query.data, isAllStudents]);
 
   const yDomain = useMemo((): [number | "auto", number | "auto"] => {
-    if (isAllStudents || chartData.length === 0) return ["auto", "auto"];
-    const nets = chartData.map((d) => Number((d as { net: number }).net));
-    const min = Math.min(...nets);
-    const max = Math.max(...nets);
-    const padding = Math.max((max - min) * 0.15, 5);
-    return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
-  }, [chartData, isAllStudents]);
+    // Veri yoksa da grafik cercevesi (eksen + grid) gorunsun diye sabit domain.
+    if (chartData.length === 0) return [0, 100];
 
-  const studentNames = useMemo(() => {
-    if (!isAllStudents) return [];
-    const trends = (query.data as ReturnType<typeof useExamTrendsAll>["data"]) ?? [];
-    return trends.map((t) => t.studentName);
-  }, [query.data, isAllStudents]);
+    const values = isAllStudents
+      ? chartData.flatMap((d) =>
+          Object.entries(d)
+            .filter(([key, value]) => key !== "date" && typeof value === "number")
+            .map(([, value]) => value as number)
+        )
+      : chartData.map((d) => Number((d as { net: number }).net));
+
+    if (values.length === 0) return ["auto", "auto"];
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const padding = Math.max((max - min) * 0.15, 5);
+    const lower = Math.floor(min - padding);
+    // Cok-ogrenci modunda alt sinir 0'a sabitlenmez; boylece net'i 0 olan bir
+    // ogrencinin cizgisi eksen cizgisine yapisip gorunmez olmaz.
+    return [isAllStudents ? lower : Math.max(0, lower), Math.ceil(max + padding)];
+  }, [chartData, isAllStudents]);
 
   return (
     <Card>
@@ -112,12 +132,15 @@ export function ExamTrendsChart({ examType, studentId }: ExamTrendsChartProps) {
             title="Trend verisi yuklenemedi"
             onRetry={() => query.refetch()}
           />
-        ) : chartData.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Henuz yeterli veri yok.
-          </p>
         ) : (
-          <div className="h-[300px]">
+          <div className="relative h-[300px]">
+            {chartData.length === 0 && (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  Henuz yeterli veri yok.
+                </p>
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
@@ -155,11 +178,12 @@ export function ExamTrendsChart({ examType, studentId }: ExamTrendsChartProps) {
                 {isAllStudents ? (
                   <>
                     <Legend />
-                    {studentNames.map((name, index) => (
+                    {series.map((s, index) => (
                       <Line
-                        key={name}
+                        key={s.key}
                         type="monotone"
-                        dataKey={name}
+                        dataKey={s.key}
+                        name={s.name}
                         stroke={COLORS[index % COLORS.length]}
                         strokeWidth={2}
                         dot={{ r: 3 }}

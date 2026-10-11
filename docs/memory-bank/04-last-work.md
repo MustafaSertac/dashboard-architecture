@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-10-11 (19) — Login 401 hata akışı düzeltmesi
+
+Hatalı girişte backend `401 ERR_INVALID_CREDENTIALS` dönerken `apiClient` interceptor'ı bunu
+"token expired" sanıp refresh akışına giriyordu; refresh token olmadığı için `clearAuth()` +
+`window.location.href = "/login"` yapıp sayfayı yeniden yüklüyor ve gerçek mesaj yerine
+"No refresh token" gösteriyordu.
+
+- **`src/lib/api/client.ts`** — 401 refresh akışı artık **yalnızca `refreshToken` varsa** çalışır.
+  Token yoksa (login/register gibi AllowAnonymous uçlar) normal envelope parse'ına düşülür; gerçek
+  `ApiError` (ör. `ERR_INVALID_CREDENTIALS`) çağırana döner. Sayfa yeniden yüklenmez, spinner durur,
+  hata kutusu görünür (login UI zaten `{ success, error }` ile gösteriyor).
+- **Test:** `src/lib/api/client.test.ts` — refresh token yokken 401'in gerçek `ApiError` döndürdüğü
+  ve refresh denenmediği (mevcut ApiError/envelope testleri korunarak).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 123/123, `npm run build` başarılı.
+
+> Aktarım: `02-architecture.md` (Token & 401), `modules/auth.md`.
+
+---
+
+## 2026-10-11 (18) — Deneme trend karşılaştırması: null/boş veri + boş çerçeve
+
+`ExamTrendsChart` tüm-öğrenci modunda, denemesi olmayan bir öğrenci (`exams: null`) olduğunda query
+çöküyor ve karşılaştırma hiç görünmüyordu; ayrıca veri yokken kart düz metindi.
+
+- **`useExams.ts`** — `useExamTrendsAll` `exams` null/bos olanı `[]`'a çevirir.
+- **`exam-trends-chart.tsx`** — çok-öğrenci modunda yalnızca denemesi olanlar çizilir; `dataKey`
+  benzersiz `student-N` (öğrenci adı/aynı isim/özel karakter sorunları giderildi), ad `name` ile
+  gösterilir; Y ekseni tüm-öğrenci modunda da hesaplanır (net 0 çizgisi eksene yapışmaz); veri yoksa
+  metin yerine boş line chart çerçevesi + üstte "Henuz yeterli veri yok." yazısı.
+- **Test:** `src/modules/exams/hooks/useExams.test.tsx` (null/bos exams → `[]`).
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run test:run` 123/123, `npm run build` başarılı.
+
+> Aktarım: `modules/exams.md`.
+
+---
+
 ## 2026-10-10 (17) — Öğretmen paneli: çıkış yan navigation drawer'a taşındı
 
 Öğretmen düzeninde "Çıkış Yap" artık yan navigasyon drawer'ında (masaüstü sidebar + mobil drawer)

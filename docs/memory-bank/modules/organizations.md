@@ -68,6 +68,11 @@
 
 Frontend ek bir filtre uygulamaz; sonucu olduğu gibi gösterir.
 
+> **Bilinen sınır (BACKEND #13):** `canViewAllStudents=true` iken listede görünen ama doğrudan
+> `TeacherStudent` kaydı olmayan öğrenciler için "Kaldır" `404 ERR_ENROLLMENT_NOT_FOUND` döner.
+> Çözüm backend'de (DTO'ya `IsEnrolled`/`OwnerTeacherId` alanı veya org görünürlüğünde kaldırma).
+> Detay: `05-backend-talepleri.md` #13.
+
 ---
 
 ## DTO'lar

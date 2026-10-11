@@ -53,7 +53,9 @@ export function useExamTrendsAll(
       return items.map((s: StudentTrendDTO) => ({
         studentId: s.studentId,
         studentName: s.studentName,
-        exams: s.exams.map(mapExamDtoToUi) as ExamResult[],
+        // Denemesi olmayan ogrenci icin backend `exams: null` donebilir; bu durumda
+        // query'nin hata vermemesi icin guvenli varsayilan kullanilir.
+        exams: (s.exams ?? []).map(mapExamDtoToUi) as ExamResult[],
       }));
     },
     enabled: !!examCode && !!teacherId,

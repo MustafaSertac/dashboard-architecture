@@ -1,6 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import axios from "axios";
 import { ApiError, isApiError } from "@/lib/api/error";
 import { isApiResponse, unwrapEnvelope } from "@/lib/api/envelope";
+import { apiClient } from "@/lib/api/client";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
 import type { ApiResponse } from "@/types/common";
 
 describe("ApiError", () => {
@@ -52,5 +55,60 @@ describe("unwrapEnvelope", () => {
       error: { code: "ERR_X", message: "bir hata" },
     };
     expect(() => unwrapEnvelope(resp)).toThrow("bir hata");
+  });
+});
+
+function make401(config: unknown) {
+  return new axios.AxiosError(
+    "Request failed with status code 401",
+    axios.AxiosError.ERR_BAD_REQUEST,
+    config as never,
+    {},
+    {
+      status: 401,
+      statusText: "Unauthorized",
+      headers: {},
+      config: config as never,
+      data: {
+        isSuccess: false,
+        error: {
+          code: "ERR_INVALID_CREDENTIALS",
+          message: "Hatali email/sifre",
+        },
+      },
+    } as never
+  );
+}
+
+describe("apiClient 401 davranisi", () => {
+  let originalAdapter: typeof apiClient.defaults.adapter;
+
+  beforeEach(() => {
+    originalAdapter = apiClient.defaults.adapter;
+    useAuthStore.setState({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+    });
+  });
+
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+    vi.restoreAllMocks();
+  });
+
+  it("refresh token yokken 401 gercek ApiError olarak firlatilir; refresh denenmez", async () => {
+    const refreshSpy = vi.spyOn(axios, "post");
+    apiClient.defaults.adapter = async (config) => {
+      throw make401(config);
+    };
+
+    const err = await apiClient.post("/auth/login", {}).catch((e) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.code).toBe("ERR_INVALID_CREDENTIALS");
+    expect(err.message).toBe("Hatali email/sifre");
+    // Anonymous istekte refresh endpoint'ine gidilmemeli.
+    expect(refreshSpy).not.toHaveBeenCalled();
   });
 });

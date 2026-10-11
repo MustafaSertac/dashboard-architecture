@@ -20,6 +20,7 @@
 | # | Talep | Endpoint / Alan | Durum |
 |---|-------|-----------------|:-----:|
 | **#12** | **Günlük seri (streak)** | `DashboardOverviewDTO.quickStats.currentStreak` / `longestStreak` | ⏳ Backend bekliyor |
+| **#13** | **Org görünürlüğünde öğrenci kaldırma** | `GET /teachers/{teacherId}/students` + `DELETE .../{studentId}` | ⏳ Backend bekliyor |
 
 ---
 
@@ -46,6 +47,29 @@ o güne ait en az bir görev tamamlanmış (`isCompleted = true`).
 **Backend entegre olana kadar frontend planı:** İstemci tarafı fallback —
 `GET /study-tasks/students/{studentId}?startDate&endDate` (son 90 gün) verisinden seri hesaplama.
 Detay: `06-yapilacaklar.md`.
+
+---
+
+## #13 — Org görünürlüğü açıkken öğrenci kaldırma
+
+**Neden:** `canViewAllStudents = true` olan bir öğretmen `GET /teachers/{teacherId}/students` ile
+**aynı organizasyondaki tüm öğrencileri** görür. Bu öğrenciler yalnızca görünürlük nedeniyle listededir;
+öğretmenle aralarında doğrudan `TeacherStudent` kaydı yoktur. Öğrenci kartındaki "Kaldır" butonu
+`DELETE /teachers/{teacherId}/students/{studentId}` çağırınca backend **404 `ERR_ENROLLMENT_NOT_FOUND`**
+("Enrollment was not found.") döner ve öğrenci listeden kaybolmaz.
+
+**Gözlemlenen:** `/teacher/students` → bir org öğrencisinde "Kaldır" → 404; liste değişmez.
+
+**İstenen (tercihen A):**
+- **A (önerilen):** `TeacherStudentDTO`'ya kaydın kime ait olduğunu belirten alan eklensin
+  (`OwnerTeacherId` ve/veya `IsEnrolled: boolean`). Frontend yalnızca kendi kayıtlarında "Kaldır"
+  göstersin; böylece yanlış 404 üretilmez.
+- **B:** Org görünürlüğüyle listede olan öğrenciler için de kaldırma çalışsın (öğretmene özel
+  "gizli/excluded" kaydı ile `GET /teachers/{teacherId}/students` bu kayıtları dışlayacak şekilde
+  filtrelenir).
+
+**Mevcut durum (frontend):** Kural gereği liste olduğu gibi gösterilir (istemci filtresi/mock yok);
+kaldırma davranışı backend'e bağlıdır. Detay: `modules/organizations.md` (görünürlük kuralı).
 
 ---
 

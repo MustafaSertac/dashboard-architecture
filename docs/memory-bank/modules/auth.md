@@ -122,5 +122,9 @@ interface TeacherRegisterRequest {
   (`AuthUser`) da yazılır.
 - `role` API'da number; UI'da `roleFromApi` ile `UiUserRole`'a çevrilir.
 - `AuthGuard` oturumsuz kullanıcıyı `/login`'e, oturumluyu role göre panele yönlendirir.
+- **Login 401 (2026-10-11):** Hatalı girişte backend `401 ERR_INVALID_CREDENTIALS` döner. `apiClient`
+  interceptor'ı `refreshToken` yokken refresh denemez (detay: `02-architecture.md`); hata
+  `{ success: false, error }` olarak login UI'a ulaşır ve gerçek mesaj gösterilir. `login/page.tsx`
+  spinner'ı response gelince durur.
 - Hata kodları: `ERR_VALIDATION_FAILED`, `ERR_INVALID_CREDENTIALS`, `ERR_EMAIL_EXISTS`,
   `ERR_INVALID_REFRESH_TOKEN`, `ERR_USER_NOT_FOUND`.

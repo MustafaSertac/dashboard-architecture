@@ -87,6 +87,14 @@
   çağırır ama `enabled` sayesinde yalnızca aktif mod çalışır (önceki `"__none__"` sentinel'i
   `/exams/trends?studentId=__none__` isteği atıyordu). Grafik ayrıca `components/charts/lazy-charts.tsx`
   üzerinden `next/dynamic` ile geç yüklenir.
+- **Null/boş dayanıklılık (2026-10-11):** Denemesi olmayan öğrenci için backend `exams: null`
+  dönebiliyor; `useExamTrendsAll` bunu `[]`'a çevirir (aksi halde `s.exams.map` atıp query
+  hata veriyordu ve tüm karşılaştırma boş kalıyordu). Çok-öğrenci modunda yalnızca denemesi olan
+  öğrenciler çizilir; `dataKey` öğrenci adı yerine benzersiz `student-N` (aynı isim/özel karakter
+  çizgiyi bozuyordu), ad `name` prop'u ile legend/tooltip'te gösterilir. Y ekseni tüm-öğrenci
+  modunda da veri aralığına göre (alt sınır 0'a sabitlenmeden) hesaplanır; net'i 0 olan çizgi eksene
+  yapışmaz. Veri yoksa kart metin yerine boş bir line chart çerçevesi (eksen+grid) gösterir,
+  üzerine "Henüz yeterli veri yok." yazısı biner.
 - Şablon bölüm adları backend ile **birebir** eşleşmeli: `"Türkçe"`, `"Sosyal Bilimler"`,
   `"Temel Matematik"`, `"Fen Bilimleri"`, `"Türk Dili ve Edebiyatı – Sosyal Bilimler-1"` vb.
 - Ders kodları (`lessonCode`) `exam-config.ts` `LESSON_CODES` üzerinden eşlenir;

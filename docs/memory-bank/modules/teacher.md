@@ -67,6 +67,12 @@ Hook bunu `TeacherStudent` (`User` + istatistikler, `role: "student"`) modeline 
   ve "en iyi" (≥%80) öğrenciler ile tüm-öğrenci net trend karşılaştırmasını gösterir.
 - `/teacher/students` sayfası `StudentList` ile öğrenci ekle (dialog + `studentId`) ve kaldır
   (AlertDialog) işlemlerini yapar.
+- **Bilinen sınır (BACKEND #13, 2026-10-11):** `canViewAllStudents=true` iken liste, org'daki
+  öğretmenle doğrudan `TeacherStudent` kaydı olmayan öğrencileri de içerir. Bu öğrencilerde "Kaldır"
+  → `DELETE /teachers/{teacherId}/students/{studentId}` → **404 `ERR_ENROLLMENT_NOT_FOUND`**; öğrenci
+  listeden kalkmaz. Frontend kural gereği filtre uygulamaz; çözüm backend'de (DTO'ya `IsEnrolled`
+  alanı veya org görünürlüğünde kaldırma). Detay: `05-backend-talepleri.md` #13,
+  `modules/organizations.md`.
 - Öğrenci detay sayfaları: `daily`, `weekly`, `monthly`, `exams`, `analytics` —
   ilgili modüllerin hook'larını `studentId` ile tüketir.
 - Hata kodları: `ERR_INVALID_TEACHER_ID`, `ERR_INVALID_STUDENT_ID`, `ERR_TEACHER_NOT_FOUND`,

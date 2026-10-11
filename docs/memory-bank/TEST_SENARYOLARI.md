@@ -21,7 +21,8 @@
 | Analytics service | `src/modules/analytics/services/analytics.service.test.ts` | weekly, monthly (?perSubject), yearly (?perSubject), dashboard |
 | Exam service | `src/modules/exams/services/exam.service.test.ts` | list, detail(?detailed), trends, trendsAll(?teacherId), create, update, delete |
 | Lesson service | `src/modules/lessons/services/lesson.service.test.ts` | list, getById, create, update, delete, getUnits, createUnit, updateUnit, deleteUnit, getTopics, createTopic, updateTopic, deleteTopic, **getStudentLessons, setStudentLessons, removeStudentLesson, getStudentOwnLessons** |
-| API client | `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope (envelope doğrulama) |
+| API client | `src/lib/api/client.test.ts` | ApiError sınıfı, isApiResponse, unwrapEnvelope; **401 refresh ayrımı** (refresh token yokken login 401 → gerçek `ApiError`, refresh denenmez) |
+| Exam trends hook | `src/modules/exams/hooks/useExams.test.tsx` | `useExamTrendsAll` null/boş `exams` → `[]` (query çökmez) |
 | Utils | `src/lib/utils.test.ts` | `formatFullName` — split + isim/soyad büyük-küçük harf (Türkçe) |
 | StudyTimerCard | `src/components/dashboard/study-timer-card.test.tsx` | duraklatınca geçen süre `logStudy`'ye **delta** olarak yazılır (correct/wrong/empty = 0); görev yoksa uyarı + disabled |
 | TaskModal | `src/components/tasks/task-modal.test.tsx` | gerçek ders/ünite/konu seçimi → create request'te gerçek lessonId/unitId/topicId |
@@ -145,6 +146,8 @@ npm test               # watch modunda
 2. `POST /teachers/{teacherId}/students` çağrılmalı
 3. Yeni öğrenci listeye düşmeli
 4. Öğrenci kartındaki "Kaldır" butonuna tıkla → onay → `DELETE /teachers/{teacherId}/students/{studentId}`
+5. **Kısıt (BACKEND #13):** `canViewAllStudents=true` iken org'daki başka öğretmenin öğrencisinde
+   "Kaldır" → `404 ERR_ENROLLMENT_NOT_FOUND` döner; kaldırma backend çözümü bekliyor
 
 ### S19 — Profil güncelleme
 1. `/dashboard/profile` → form yüklü (mevcut bilgiler)
@@ -237,6 +240,19 @@ npm test               # watch modunda
 4. `/teacher` (tüm öğrenciler) modunda yalnızca `GET /exams/trends/all?...` istenmeli.
 5. Öğrenci listesinde bir karta hover → ağ sekmesinde `/teacher/students/{id}/daily` rota paketi
    önden yüklenmeli (Next.js `Link prefetch`).
+
+### S32 — Hatalı giriş: gerçek hata mesajı, sayfa yenilenmez
+1. `/login` → yanlış e-posta/şifre ile "Giris Yap"
+2. Yalnızca `POST /auth/login` çağrılmalı; **`POST /auth/refresh-token` çağrılmamalı**
+3. Sayfa **yeniden yüklenmemeli**; spinner durup hata kutusunda backend mesajı ("Hatalı email/şifre")
+   görünmeli (401 `ERR_INVALID_CREDENTIALS` → gerçek `ApiError`)
+
+### S33 — Deneme trend karşılaştırması: boş/null öğrenci
+1. Org'da denemesi hiç olmayan bir öğrenci bulunurken `/teacher` → "Ogrenci Net Trend Karsilastirmasi"
+2. `GET /exams/trends/all` bir öğrenci için `exams: null`/boş dönse bile karşılaştırma **boş kalmamalı**;
+   denemesi olan öğrencilerin çizgileri görünmeli
+3. Hiç deneme yoksa kart metin yerine boş line chart çerçevesi + "Henuz yeterli veri yok." göstermeli
+4. Net'i 0 olan bir öğrenci varken çizgisi eksene yapışmadan görünmeli
 
 ---
 

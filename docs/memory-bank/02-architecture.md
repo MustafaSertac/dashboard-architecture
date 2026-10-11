@@ -62,6 +62,11 @@ Response interceptor `isSuccess === false` gördüğünde `ApiError` fırlatır.
   2. Bekleyen istekler `failedQueue` içinde tutulur.
   3. Yeni token store'a yazılır, kuyruk serbest bırakılır ve istekler yeniden denenir.
   4. Refresh de başarısızsa `clearAuth()` + `/login`'e yönlendirme.
+  5. **401 ayrımı (2026-10-11):** Refresh akışına **yalnızca `refreshToken` varsa** girilir. Token
+     yokken (login/register gibi AllowAnonymous uçların 401'i, ör. `ERR_INVALID_CREDENTIALS`)
+     refresh denenmez; hata aşağıdaki normal envelope parse'ına düşer ve gerçek `ApiError` çağırana
+     döner. Böylece hatalı girişte sayfa yeniden yüklenmez ve gerçek mesaj (ör. "Hatalı email/şifre")
+     gösterilir.
 
 ### Ortam (`src/config/env.ts`)
 

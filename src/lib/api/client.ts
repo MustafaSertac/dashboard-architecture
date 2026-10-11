@@ -71,64 +71,70 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && originalRequest) {
-      if (!isRefreshing) {
-        isRefreshing = true;
+      const storedRefreshToken = useAuthStore.getState().refreshToken;
 
-        try {
-          const storedRefreshToken = useAuthStore.getState().refreshToken;
-          if (!storedRefreshToken) throw new Error("No refresh token");
+      // Refresh token yoksa bu bir oturum suresi dolmasi degil, is kurali
+      // hatasidir (or. login/register gibi AllowAnonymous uclarda
+      // ERR_INVALID_CREDENTIALS). Bu yuzden refresh akisina girilmez; asagidaki
+      // normal hata parse'ina dusulerek gercek ApiError firlatilir ve sayfa
+      // yeniden yuklenmez.
+      if (storedRefreshToken) {
+        if (!isRefreshing) {
+          isRefreshing = true;
 
-          const response = await axios.post(
-            `${env.API_BASE_URL}${endpoints.auth.refreshToken}`,
-            { refreshToken: storedRefreshToken }
-          );
+          try {
+            const response = await axios.post(
+              `${env.API_BASE_URL}${endpoints.auth.refreshToken}`,
+              { refreshToken: storedRefreshToken }
+            );
 
-          const authData = response.data as ApiResponse<{
-            accessToken: string;
-            refreshToken: string;
-          }>;
+            const authData = response.data as ApiResponse<{
+              accessToken: string;
+              refreshToken: string;
+            }>;
 
-          if (authData.isSuccess && authData.data) {
-            const newAccessToken = authData.data.accessToken;
-            const newRefreshToken = authData.data.refreshToken;
+            if (authData.isSuccess && authData.data) {
+              const newAccessToken = authData.data.accessToken;
+              const newRefreshToken = authData.data.refreshToken;
 
-            useAuthStore.setState({
-              accessToken: newAccessToken,
-              refreshToken: newRefreshToken,
-            });
+              useAuthStore.setState({
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+              });
 
-            processQueue(null, newAccessToken);
+              processQueue(null, newAccessToken);
 
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              }
+              return apiClient(originalRequest);
+            } else {
+              throw new Error("Token refresh failed");
             }
-            return apiClient(originalRequest);
-          } else {
-            throw new Error("Token refresh failed");
+          } catch (refreshError) {
+            processQueue(refreshError, null);
+            useAuthStore.getState().clearAuth();
+            if (typeof window !== "undefined") {
+              window.location.href = "/login";
+            }
+            throw refreshError;
+          } finally {
+            isRefreshing = false;
           }
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          useAuthStore.getState().clearAuth();
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
-          throw refreshError;
-        } finally {
-          isRefreshing = false;
         }
-      }
 
-      return new Promise((resolve, reject) => {
-        failedQueue.push({
-          resolve: (token: string) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            resolve(apiClient(originalRequest));
-          },
-          reject,
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string) => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
+              resolve(apiClient(originalRequest));
+            },
+            reject,
+          });
         });
-      });
+      }
     }
 
     if (error.response) {
